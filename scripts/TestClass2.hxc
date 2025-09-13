@@ -1,0 +1,10 @@
+import funkin.modding.module.ScriptedModule;
+import funkin.modding.events.ScriptEvent.StateChangeScriptEvent;
+import funkin.modding.module.ModuleHandler;
+
+class TestClass2 extends ScriptedModule {
+    override public function onStateChangeBegin(event:StateChangeScriptEvent) {
+        trace("Called from Testclass2");
+        ModuleHandler.getModule("TestClass").scriptCall("test");
+    }
+}

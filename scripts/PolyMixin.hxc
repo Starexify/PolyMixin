@@ -3,7 +3,7 @@ import funkin.modding.module.ScriptedModule;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
 
-class PolyMixins extends ScriptedModule {
+class PolyMixin extends ScriptedModule {
     var injected = false;
 
     var emptyEBlock:Expr;
@@ -33,7 +33,7 @@ class PolyMixins extends ScriptedModule {
 
     override public function onUpdate(event:UpdateScriptEvent) {
         if (!injected) {
-            var testInstance = Testing.instance;
+            var testInstance = TestClass.instance;
             if (testInstance != null) {
                 var cachedFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(testInstance, "_cachedFunctionDecls");
                 var newCachedFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(this, "_cachedFunctionDecls");

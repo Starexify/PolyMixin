@@ -2,13 +2,14 @@ import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
+import polymod.hscript._internal.PolymodScriptClass;
 
 class PolyMixin extends ScriptedModule {
     var injected = false;
 
+    var cachedFuncDecl:Map<String, FunctionDecl>;
     var emptyEBlock:Expr;
     var returnBlock:Expr;
-    var cachedFuncDecl:Map<String, FunctionDecl>;
 
     function new() {
         super("PolyMixins");
@@ -33,58 +34,82 @@ class PolyMixin extends ScriptedModule {
 
     override public function onUpdate(event:UpdateScriptEvent) {
         if (!injected) {
-            var testInstance = TestClass.instance;
-            if (testInstance != null) {
-                var cachedFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(testInstance, "_cachedFunctionDecls");
-                var newCachedFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(this, "_cachedFunctionDecls");
-
-                if (cachedFuncs != null) {
-                    var getMethod = cachedFuncs.get;
-                    var setMethod = cachedFuncs.set;
-
-                    if (ReflectUtil.isFunction(getMethod) && ReflectUtil.isFunction(setMethod)) {
-                        var baseFunc:FunctionDecl = cachedFuncs.get("test");
-                        var newFunc:FunctionDecl = newCachedFuncs.get("testMixin");
-
-                        if (baseFunc != null) {
-                            //var transformedFunc = mergeFunctions(baseFunc, newFunc);
-                            var transformedFunc = inject(baseFunc, newFunc);
-
-                            cachedFuncs.set("test", transformedFunc);
-                            trace("Function replaced!");
-                        }
-                    }
-                }
-                injected = true;
-            }
+            var success = injectByName(TestClass.instance, "test", this, "testMixin");
+            if (success) trace("Function injection succeeded!");
+            injected = true;
         }
     }
 
-    public function inject(oldFunc:FunctionDecl, newFunc:FunctionDecl):Dynamic {
-        var newFuncExpr:Expr.EBlock = newFunc.expr.e;
-        var newFuncExprs:Array<Expr> = [];
-        switch (newFuncExpr) {
-            case Expr.EBlock(exprs):
-                newFuncExprs = exprs;
-            default:
-        }
+    /**
+     * Injects a source function into a target function by name.
+     *
+     * @param targetInstance The instance whose function will be modified.
+     * @param targetFuncName Name of the target function to modify.
+     * @param sourceInstance The instance containing the source function.
+     * @param sourceFuncName Name of the source function to inject.
+     * @return True if injection succeeded, false otherwise.
+     */
+    public static function injectByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String):Bool {
+        var targetFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(targetInstance, "_cachedFunctionDecls");
+        var sourceFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(sourceInstance, "_cachedFunctionDecls");
+        if (targetFuncs == null || sourceFuncs == null) return false;
 
-        trace(oldFunc.expr);
-        switch (oldFunc.expr.e) {
-            case Expr.EBlock(exprs):
-                for (expr in newFuncExprs) exprs.push(expr);
-                trace(exprs);
-            default:
-        }
+        var targetFunc = targetFuncs.get(targetFuncName);
+        var sourceFunc = sourceFuncs.get(sourceFuncName);
 
-        trace(oldFunc.expr);
+        if (targetFunc == null || sourceFunc == null) return false;
 
-        return oldFunc;
+        var newFunc = inject(targetFunc, sourceFunc);
+        targetFuncs.set(targetFuncName, newFunc);
+
+        return true;
     }
 
-    public function mergeFunctions(oldFunc, newFunc):Dynamic {
-        var transformedFunc = newFunc;
-        return transformedFunc;
+    /**
+     * Injects the contents of one function into another at runtime by manipulating their ASTs.
+     *
+     * @param targetFunc The target function whose body will be modified.
+     * @param sourceFunc The source function whose expressions will be injected.
+     * @return The modified `targetFunc` function declaration with `sourceFunc`'s expressions appended.
+     *
+     *
+     * @example
+     * var injectedFunc = inject(originalFunction, mixinFunction);
+     * // originalFunction now executes both its original code and the code from mixinFunction
+     */
+    public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl):FunctionDecl {
+        var sourceFuncExpr:Expr.EBlock = sourceFunc.expr.e;
+        var sourceFuncExprs:Array<Expr> = [];
+
+        switch (sourceFuncExpr) {
+            case Expr.EBlock(exprs):
+                sourceFuncExprs = exprs;
+            default:
+        }
+
+        switch (targetFunc.expr.e) {
+            case Expr.EBlock(exprs):
+                for (expr in sourceFuncExprs) exprs.push(expr);
+            default:
+        }
+
+        return targetFunc;
+    }
+
+    /**
+     * Replaces the contents of one function with another at runtime.
+     *
+     * @param targetFunc The target function that would be replaced.
+     * @param sourceFunc The source function whose body will be used.
+     * @return The source function `sourceFunc` whose expressions will be replaced with.
+     *
+     *
+     * @example
+     * var replacedFunc = replace(originalFunction, mixinFunction);
+     * // injectedFunc is now mixinFunction
+     */
+    public static function replace(targetFunc:FunctionDecl, sourceFunc:FunctionDecl):FunctionDecl {
+        return sourceFunc;
     }
 
     function emptyFunc() {

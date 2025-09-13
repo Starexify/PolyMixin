@@ -1,0 +1,93 @@
+import funkin.modding.events.ScriptEvent;
+import funkin.modding.module.ScriptedModule;
+import funkin.util.ReflectUtil;
+import hscript.Expr;
+
+class PolyMixins extends ScriptedModule {
+    var injected = false;
+
+    var emptyEBlock:Expr;
+    var returnBlock:Expr;
+    var cachedFuncDecl:Map<String, FunctionDecl>;
+
+    function new() {
+        super("PolyMixins");
+        cachedFuncDecl = ReflectUtil.getField(this, "_cachedFunctionDecls");
+        emptyEBlock = cachedFuncDecl.get("emptyFunc").expr.e;
+        switch (emptyEBlock) {
+            case Expr.EBlock(exprs):
+                returnBlock = exprs[0];
+                exprs.remove(exprs[0]);
+            default: trace("Well this shouldn't happen");
+        }
+    }
+
+    function testMixin() {
+        trace("Injection in test() was successful!");
+        trace("Injection in test() was successful! x2");
+    }
+
+    override public function onStateChangeBegin(event:StateChangeScriptEvent) {
+        TestClass.instance.test();
+    }
+
+    override public function onUpdate(event:UpdateScriptEvent) {
+        if (!injected) {
+            var testInstance = Testing.instance;
+            if (testInstance != null) {
+                var cachedFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(testInstance, "_cachedFunctionDecls");
+                var newCachedFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(this, "_cachedFunctionDecls");
+
+                if (cachedFuncs != null) {
+                    var getMethod = cachedFuncs.get;
+                    var setMethod = cachedFuncs.set;
+
+                    if (ReflectUtil.isFunction(getMethod) && ReflectUtil.isFunction(setMethod)) {
+                        var baseFunc:FunctionDecl = cachedFuncs.get("test");
+                        var newFunc:FunctionDecl = newCachedFuncs.get("testMixin");
+
+                        if (baseFunc != null) {
+                            //var transformedFunc = mergeFunctions(baseFunc, newFunc);
+                            var transformedFunc = inject(baseFunc, newFunc);
+
+                            cachedFuncs.set("test", transformedFunc);
+                            trace("Function replaced!");
+                        }
+                    }
+                }
+                injected = true;
+            }
+        }
+    }
+
+    public function inject(oldFunc:FunctionDecl, newFunc:FunctionDecl):Dynamic {
+        var newFuncExpr:Expr.EBlock = newFunc.expr.e;
+        var newFuncExprs:Array<Expr> = [];
+        switch (newFuncExpr) {
+            case Expr.EBlock(exprs):
+                newFuncExprs = exprs;
+            default:
+        }
+
+        trace(oldFunc.expr);
+        switch (oldFunc.expr.e) {
+            case Expr.EBlock(exprs):
+                for (expr in newFuncExprs) exprs.push(expr);
+                trace(exprs);
+            default:
+        }
+
+        trace(oldFunc.expr);
+
+        return oldFunc;
+    }
+
+    public function mergeFunctions(oldFunc, newFunc):Dynamic {
+        var transformedFunc = newFunc;
+        return transformedFunc;
+    }
+
+    function emptyFunc() {
+        return;
+    }
+}

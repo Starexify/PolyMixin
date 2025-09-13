@@ -1,0 +1,13 @@
+{
+  "title": "PolyMixins",
+  "description": "A runtime AST manipulation library for modifying scripted modules.",
+  "contributors": [
+    {
+      "name": "ImVeryBad",
+      "role": "Developer"
+    }
+  ],
+  "api_version": "0.7.4",
+  "mod_version": "0.0.0",
+  "license": "MIT"
+}

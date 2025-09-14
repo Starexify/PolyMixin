@@ -7,16 +7,22 @@ class TestClass2 extends ScriptedModule {
 
     override public function onStateChangeBegin(event:StateChangeScriptEvent) {
         if (injected) {
-            if (ModuleHandler.getModule("TestClass").scriptGet("newFunc") != null) ModuleHandler.getModule("TestClass").scriptCall("newFunc");
-            TestClass.instance.newFunc();
+            //if (ModuleHandler.getModule("TestClass").scriptGet("newFunc") != null) ModuleHandler.getModule("TestClass").scriptCall("newFunc");
+            //TestClass.instance.newFunc();
+
+            TestClass.instance.test();
         }
     }
 
     override public function onUpdate(event:UpdateScriptEvent) {
         if (!injected) {
-            var success = PolyMixin.injectFunction(TestClass.instance, this, "newFunc");
+            var success = PolyMixin.injectByName(TestClass.instance, "test", this, "testMixin", At.INVOKE, "doSmth", 1, Shift.AFTER);
             if (success) trace("Injection succeeded!");
             injected = success;
         }
+    }
+
+    function testMixin() {
+        trace("Injected into test()");
     }
 }

@@ -5,24 +5,30 @@ import Lambda;
 
 /**
  * Utility module providing static methods and functions for injection, overwriting or modifying
- * `PolymodScriptedClass` instances dynamically
+ * `PolymodScriptedClass` instances dynamically by manipulating their AST.
  */
 class PolyMixin extends ScriptedModule {
-
     function new() {
-        super("PolyMixins");
+        super("PolyMixin");
     }
 
-    /**
-     * Injects a function from one instance into another instance.
+/**
+     * Copies a function from one instance to another, effectively adding
+     * the source function to the target instance.
      *
-     * @param targetInstance The instance whose function definitions will be modified.
-     * @param sourceInstance The instance containing the source function.
-     * @param sourceFuncName The name of the function to inject from the source instance.
-     * @return True if injection succeeded, false otherwise.
+     * This modifies both the function cache and the AST field list of the target,
+     * making the function behave as if it were originally declared there.
+     *
+     * @param targetInstance The instance that will receive the new function.
+     * @param sourceInstance The instance containing the function to copy.
+     * @param sourceFuncName The name of the function to copy from the source instance.
+     * @return True if the function was successfully copied, false otherwise.
      *
      *
-     * @note This method modifies both the function cache and the AST field list.
+     * @example
+     * // Copy `helper` function from `MixinClass` into `TargetClass`
+     *
+     * PolyMixin.injectFunction(TargetClass.instance, MixinClass.instance, "helper");
      */
     public static function injectFunction(targetInstance:Dynamic, sourceInstance:Dynamic, sourceFuncName:String):Bool {
         var targetFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(targetInstance, "_cachedFunctionDecls");
@@ -45,17 +51,36 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
-    /**
-     * Injects a source function into a target function by name.
+/**
+     * Injects the contents of a source function into a target function by name.
      *
-     * @param targetInstance The instance whose function will be modified.
-     * @param targetFuncName Name of the target function to modify.
+     * This is the main entry point for performing mixin-style injections. Depending on `at`,
+     * the injection may occur at the start of the target function, before returns, at the end,
+     * or around a specific method call inside the function body.
+     *
+     * @param targetInstance The instance containing the target function.
+     * @param targetFuncName The name of the target function to modify.
      * @param sourceInstance The instance containing the source function.
-     * @param sourceFuncName Name of the source function to inject.
-     * @return True if injection succeeded, false otherwise.
+     * @param sourceFuncName The name of the source function to inject.
+     * @param at Where to inject (`At.HEAD`, `At.RETURN`, `At.TAIL`, or `At.INVOKE`).
+     * @param target (Optional) The name of the method call to inject around (only used with `At.INVOKE`).
+     * @param ordinal (Optional) The occurrence index of the target method call (-1 for all occurrences).
+     * @param shift (Optional) Whether to inject before or after the target call (`Shift.BEFORE` or `Shift.AFTER`).
+     * @return True if the injection succeeded, false otherwise.
+     *
+     *
+     * @example
+     * // Inject `onUpdateMixin` at the head of `onUpdate`
+     *
+     * PolyMixin.injectByName(TargetClass.instance, "onUpdate", MixinClass.instance, "onUpdateMixin", At.HEAD);
+     *
+     * @example
+     * // Inject before the first `doSmth` call inside the `onUpdate` function
+     *
+     * PolyMixin.injectByName(TargetClass.instance, "onUpdate", MixinClass.instance, "onUpdateMixin", At.INVOKE, "doSmth", 0, Shift.BEFORE);
      */
-    public static function injectByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:At = At.HEAD):Bool {
-        if (at == null) at = At.TAIL;
+    public static function injectByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:At, ?target:String, ?ordinal:Int, ?shift:Shift):Bool {
+        if (at == null) at = At.HEAD;
         var targetFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(targetInstance, "_cachedFunctionDecls");
         var sourceFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(sourceInstance, "_cachedFunctionDecls");
         if (targetFuncs == null || sourceFuncs == null) return false;
@@ -65,32 +90,43 @@ class PolyMixin extends ScriptedModule {
 
         if (targetFunc == null || sourceFunc == null) return false;
 
-        var newFunc = inject(targetFunc, sourceFunc, at);
+        var newFunc = switch (at) {
+            case At.INVOKE:
+                injectAtTarget(targetFunc, sourceFunc, target, ordinal, shift);
+            default:
+                inject(targetFunc, sourceFunc, at);
+        }
+
         targetFuncs.set(targetFuncName, newFunc);
 
         return true;
     }
 
     /**
-     * Injects the contents of one function into another at runtime by manipulating their ASTs.
+     * Injects the contents of one function into another by manipulating their ASTs.
      *
-     * @param targetFunc The target function whose body will be modified.
+     * Depending on `at`, injection may occur at the start of the function body,
+     * before every return statement, or at the end of the function.
+     *
+     * @param targetFunc The target function to modify.
      * @param sourceFunc The source function whose expressions will be injected.
-     * @return The modified `targetFunc` function declaration with `sourceFunc`'s expressions appended.
+     * @param at Where to inject (`At.HEAD`, `At.RETURN`, `At.TAIL`).
+     * @return The modified target function with injected expressions.
      *
      *
      * @example
-     * var injectedFunc = inject(originalFunction, mixinFunction);
-     * // originalFunction now executes both its original code and the code from mixinFunction
+     * // Inject at the end of a function
+     *
+     * var modified = PolyMixin.inject(originalFunc, mixinFunc, At.TAIL);
      */
-    public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At = At.HEAD):FunctionDecl {
+    public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At):FunctionDecl {
         var sourceExpr:Expr.EBlock = sourceFunc.expr.e;
         var sourceExprs:Array<Expr> = [];
 
         switch (sourceExpr) {
             case Expr.EBlock(exprs):
                 sourceExprs = exprs;
-            default:
+            default: trace("Source function is an EBlock, please provide an actual function!");
         }
 
         switch (targetFunc.expr.e) {
@@ -116,25 +152,147 @@ class PolyMixin extends ScriptedModule {
         return targetFunc;
     }
 
-    /**
-     * Replaces the contents of one function with another at runtime.
+/**
+     * Injects the contents of a source function into a target function at a specific method call.
      *
-     * @param targetFunc The target function that would be replaced.
-     * @param sourceFunc The source function whose body will be used.
-     * @return The source function `sourceFunc` whose expressions will be replaced with.
+     * Iterates over the AST of the target function, looks for a call to a specific method
+     * (given by `target`), and inserts the expressions from the source function either before or after
+     * that call, optionally targeting a specific occurrence via `ordinal`.
+     *
+     * @param targetFunc The function into which the injection will happen.
+     * @param sourceFunc The function whose expressions will be injected.
+     * @param target The name of the method call inside the target function to inject around.
+     * @param ordinal The zero-based occurrence of the target method to inject at (-1 for all occurrences).
+     * @param shift Whether to inject before or after the target method call (`Shift.BEFORE` or `Shift.AFTER`).
+     * @return The modified target function declaration with injected expressions.
      *
      *
      * @example
-     * var replacedFunc = replace(originalFunction, mixinFunction);
-     * // injectedFunc is now mixinFunction
+     * // Inject `mixinFunc` after every call to `onUpdate`
+     *
+     * var modified = PolyMixin.injectAtTarget(originalFunc, mixinFunc, "onUpdate", -1, Shift.AFTER);
+     */
+    public static function injectAtTarget(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, target:String, ordinal:Int, shift:Shift):FunctionDecl {
+        if (target == "" || target == null) {
+            trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
+            return targetFunc;
+        }
+        if (shift == null) shift = Shift.BEFORE;
+        if (ordinal == null) ordinal = 0;
+
+        var sourceExpr:Expr.EBlock = sourceFunc.expr.e;
+        var sourceExprs:Array<Expr> = [];
+
+        switch (sourceExpr) {
+            case Expr.EBlock(exprs):
+                sourceExprs = exprs;
+            default: trace("Source function is an EBlock, please provide an actual function!");
+        }
+
+        switch (targetFunc.expr.e) {
+            case Expr.EBlock(targetExprs):
+                var matchCount = 0;
+                var i = 0;
+                var injectionPerformed = false;
+
+                while (i < targetExprs.length) {
+                    switch (targetExprs[i].e) {
+                        case Expr.ECall(expr, params):
+                            var methodName = switch (expr.e) {
+                                case Expr.EIdent(name): name;
+                                default: "";
+                            }
+
+                            if (methodName == target) {
+                                // Check if this matches our ordinal requirement
+                                if (ordinal == -1 || matchCount == ordinal) {
+                                    trace("Target method matched at ordinal " + matchCount + "! Injecting " + shift + " call to: " + target);
+
+                                    var insertIndex = (shift == Shift.BEFORE) ? i : i + 1;
+
+                                    for (j in 0...sourceExprs.length)
+                                        targetExprs.insert(insertIndex + j, sourceExprs[j]);
+
+                                    i += sourceExprs.length + 1;
+                                    injectionPerformed = true;
+
+                                    // If targeting specific ordinal, we're done after injection
+                                    if (ordinal != -1) break;
+                                } else {
+                                    i++;
+                                }
+
+                                matchCount++;
+                            } else {
+                                i++;
+                            }
+                        default:
+                            i++;
+                    }
+                }
+
+                if (ordinal != -1 && !injectionPerformed) {
+                    trace("Error: Requested ordinal " + ordinal + " but only found " + matchCount + " occurrences of '" + target + "'");
+                }
+            default: trace("Target function is NOT an EBlock!");
+        }
+
+        return targetFunc;
+    }
+
+/**
+     * Replaces a target function entirely with a source function.
+     *
+     * After this operation, the target function no longer contains its original body
+     * and instead becomes identical to the source function.
+     *
+     * @param targetFunc The target function to be replaced.
+     * @param sourceFunc The source function to replace it with.
+     * @return The source function `sourceFunc` (now in place of the target).
+     *
+     *
+     * @example
+     * // Replace onUpdate() entirely with onUpdateMixin()
+     *
+     * var replaced = PolyMixin.overwrite(originalFunc, mixinFunc);
      */
     public static function overwrite(targetFunc:FunctionDecl, sourceFunc:FunctionDecl):FunctionDecl {
         return sourceFunc;
     }
+
+    /**
+     * Converts a string into an `At` enum value.
+     *
+     * Useful when parameters are coming from configuration or scripting contexts.
+     *
+     * @param str The string representation ("HEAD", "TAIL", "INVOKE", "RETURN").
+     * @return The matching `At` enum value, or `At.HEAD` as a fallback.
+     */
+    public static function atFromStr(str:String):At {
+        switch (str) {
+            case "HEAD": return At.HEAD;
+            case "TAIL": return At.TAIL;
+            case "INVOKE": return At.INVOKE;
+            case "RETURN": return At.RETURN;
+            default: return At.HEAD;
+        }
+    }
+}
+
+typedef InjectionParams = {
+    var at:String;
+    var target:String;
+    var ordinal:Int;
 }
 
 enum At {
     HEAD; // Inject at beginning
-    RETURN; //Before every return statement
     TAIL; // Inject at end
+    INVOKE; // Before a target
+    RETURN; // Before every return statement
+}
+
+enum Shift {
+    BEFORE;
+    AFTER;
 }

@@ -1,14 +1,14 @@
 import funkin.modding.module.ScriptedModule;
 
-class Test extends ScriptedModule {
-    private static var _instance:Test;
-    public static var instance(get, set):Test;
-    static function set_instance(value:Test):Test { return _instance = value; }
-    static function get_instance():Test { return _instance; }
+class Annotations extends ScriptedModule {
+    private static var _instance:Annotations;
+    public static var instance(get, set):Annotations;
+    static function set_instance(value:Annotations):Annotations { return _instance = value; }
+    static function get_instance():Annotations { return _instance; }
 
     public function new() {
-        super("Test");
-        Test.instance = this;
+        super("Annotations");
+        Annotations.instance = this;
     }
 
     public function test() {

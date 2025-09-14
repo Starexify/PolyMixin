@@ -12,5 +12,4 @@ Think of it as *"hot-swapping"* functions at the AST level.
 
 ## Limitations
 Currently, there are some limitations:
-- you need to get the instance of the target module yourself (if there is one).
-- injections are applied later, since mixins load after the base mod. That means you should always check for PolyMixin and the original module's availability before using it.
+- transformations are applied later, since mixins can load before/after the base mod. That means you should always check for PolyMixin and the original module's availability before using it.

@@ -1,5 +1,7 @@
+import funkin.modding.module.ModuleHandler;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
+import polymod.hscript._internal.PolymodScriptClass;
 
 class ASTUtil {
     public static function getFuncCache(instance:Dynamic):Map<String, FunctionDecl> {
@@ -11,6 +13,10 @@ class ASTUtil {
             fields: ReflectUtil.getField(instance, "_c").fields,
             cached: ReflectUtil.getField(instance, "_cachedFieldDecls")
         };
+    }
+
+    public static function getScriptedClass(name:String):PolymodScriptClass {
+        return ModuleHandler.getModule(name)._asc;
     }
 }
 

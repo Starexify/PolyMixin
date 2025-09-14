@@ -24,12 +24,23 @@ class MixinAnnotationProcessor {
             return false;
         }
 
-        applyFieldMixins(_c.fields, target, source, _c.name);
-        applyFieldMixins(_c.staticFields, target, source, _c.name);
+        applyFieldMixins(_c.fields, source, target, _c.name);
+        applyFieldMixins(_c.staticFields, source, target, _c.name);
 
         return true;
     }
 
+    public static function applyMixinsStr(source:Dynamic, target:String) {
+        return applyMixins(source, ASTUtil.getScriptedClass(target));
+    }
+
+    /**
+     * Iterates a list of fields and applies mixins based on their metadata.
+     * @param fields The array of fields (instance or static) from a class.
+     * @param target The object/class to apply the mixins to.
+     * @param source The mixin source class.
+     * @param className Name of the source class for trace/debugging.
+     */
     public static function applyFieldMixins(fields:Array<FieldDecl>, source:Dynamic, target:Dynamic, className:String) {
         if (fields == null) return;
         for (field in fields) {
@@ -40,7 +51,7 @@ class MixinAnnotationProcessor {
         }
     }
 
-    public static function handleMixins(meta:Metadata, funcName:String, source:Dynamic, target:Dynamic, className:String):Bool {
+    public static function handleMixins(meta:Metadata, funcName:String, source:Dynamic, target:Dynamic, className:String) {
         return switch (meta.name) {
             case ":Overwrite":
                 var methodName:String = retrieveParams(meta, ["method"]).method;

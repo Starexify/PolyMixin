@@ -1,29 +1,24 @@
 import funkin.modding.events.ScriptEvent;
-import funkin.modding.module.ModuleHandler;
 import funkin.modding.module.ScriptedModule;
 
-class TestClass2 extends ScriptedModule {
+class ModifyReturnTestMixin extends ScriptedModule {
     var injected:Bool = false;
 
     override public function onStateChangeBegin(event:StateChangeScriptEvent) {
-        if (injected) {
-            //if (ModuleHandler.getModule("TestClass").scriptGet("newFunc") != null) ModuleHandler.getModule("TestClass").scriptCall("newFunc");
-            //TestClass.instance.newFunc();
-
-            trace(TestClass.instance.test());
-        }
+        trace("Called from ModifyReturnTestMixin");
+        if (injected) ModifyReturnTest.instance.test();
     }
 
     override public function onUpdate(event:UpdateScriptEvent) {
         if (!injected) {
-            var success = PolyMixin.modifyByName(TestClass.instance, "test", this, "testMixin", "testMixinCall", At.RETURN);
+            var success = PolyMixin.modifyByName(ModifyReturnTest.instance, "test", this, "testMixin", "testMixinCall");
             if (success) trace("Injection succeeded!");
             injected = success;
         }
     }
 
     function testMixin(original:Int) {
-        return original + 10;
+        return trace(original + 10);
     }
 
     function testMixinCall(original:Int) {

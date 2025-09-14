@@ -1,8 +1,20 @@
 import funkin.util.ReflectUtil;
-import hscript.Expr.FunctionDecl;
+import hscript.Expr;
 
 class ASTUtil {
     public static function getFuncCache(instance:Dynamic):Map<String, FunctionDecl> {
         return ReflectUtil.getField(instance, "_cachedFunctionDecls");
     }
+
+    public static function getFields(instance:Dynamic):FieldCache {
+        return {
+            fields: ReflectUtil.getField(instance, "_c").fields,
+            cached: ReflectUtil.getField(instance, "_cachedFieldDecls")
+        };
+    }
+}
+
+typedef FieldCache = {
+    var fields:Array<FieldDecl>;
+    var cached:Map<String, FieldDecl>;
 }

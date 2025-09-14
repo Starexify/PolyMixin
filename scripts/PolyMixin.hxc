@@ -12,6 +12,51 @@ class PolyMixin extends ScriptedModule {
         super("PolyMixin");
     }
 
+    /**
+     * Modifies a target function by wrapping its return values with a call to a mixin function.
+     *
+     * This method combines function injection and return-value modification to enable mixins
+     * that alter or override the return value of an existing function. It works by copying
+     * the mixin function into the target instance (via {@link injectFunction}) and then
+     * replacing every `return` statement in the target function with a wrapped call.
+     *
+     * The mixin function must provide an "empty recall" — i.e., a function that calls the
+     * designated `callFuncName` with a placeholder argument. This is necessary so the AST
+     * can be manipulated to insert the original return value as the argument.
+     *
+     * Currently, only `At.RETURN` is supported as an injection point.
+     *
+     * @param targetInstance The instance containing the target function to modify.
+     * @param targetFuncName The name of the function in the target instance to modify.
+     * @param sourceInstance The instance containing the mixin functions.
+     * @param sourceFuncName The name of the mixin function providing logic to inject.
+     * @param callFuncName The helper/empty-call function used as a template for wrapping return values.
+     * @param at Where to inject (currently only {@code At.RETURN} is supported).
+     * @return True if the modification succeeded, false otherwise.
+     *
+     *
+     * @example
+     * // Original target function:
+     *
+     * function getValue() {
+     *     return 5;
+     * }
+     *
+     *
+     * // Mixin function:
+     *
+     * function modifyValue(original:Int) {
+     *     modifyValue(); // empty recall, used as AST template
+     *     return original + 10;
+     * }
+     *
+     *
+     * // Apply mixin:
+     *
+     * PolyMixin.modifyByName(TargetClass.instance, "getValue", MixinClass.instance, "modifyValue", "modifyValue", At.RETURN);
+     *
+     * // Resulting behavior: getValue() now returns 15 instead of 5.
+     */
     public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, ?at:At):Bool {
         if (at == null) at = At.RETURN;
 
@@ -171,23 +216,6 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
-    /**
-     * Injects the contents of one function into another by manipulating their ASTs.
-     *
-     * Depending on `at`, injection may occur at the start of the function body,
-     * before every return statement, or at the end of the function.
-     *
-     * @param targetFunc The target function to modify.
-     * @param sourceFunc The source function whose expressions will be injected.
-     * @param at Where to inject (`At.HEAD`, `At.RETURN`, `At.TAIL`).
-     * @return The modified target function with injected expressions.
-     *
-     *
-     * @example
-     * // Inject at the end of a function
-     *
-     * var modified = PolyMixin.inject(originalFunc, mixinFunc, At.TAIL);
-     */
     public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At):FunctionDecl {
         var sourceExpr:Expr.EBlock = sourceFunc.expr.e;
         var sourceExprs:Array<Expr> = [];
@@ -221,26 +249,6 @@ class PolyMixin extends ScriptedModule {
         return targetFunc;
     }
 
-/**
-     * Injects the contents of a source function into a target function at a specific method call.
-     *
-     * Iterates over the AST of the target function, looks for a call to a specific method
-     * (given by `target`), and inserts the expressions from the source function either before or after
-     * that call, optionally targeting a specific occurrence via `ordinal`.
-     *
-     * @param targetFunc The function into which the injection will happen.
-     * @param sourceFunc The function whose expressions will be injected.
-     * @param target The name of the method call inside the target function to inject around.
-     * @param ordinal The zero-based occurrence of the target method to inject at (-1 for all occurrences).
-     * @param shift Whether to inject before or after the target method call (`Shift.BEFORE` or `Shift.AFTER`).
-     * @return The modified target function declaration with injected expressions.
-     *
-     *
-     * @example
-     * // Inject `mixinFunc` after every call to `onUpdate`
-     *
-     * var modified = PolyMixin.injectAtTarget(originalFunc, mixinFunc, "onUpdate", -1, Shift.AFTER);
-     */
     public static function injectAtTarget(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, target:String, ordinal:Int, shift:Shift):FunctionDecl {
         if (target == "" || target == null) {
             trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
@@ -336,14 +344,6 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
-    /**
-     * Converts a string into an `At` enum value.
-     *
-     * Useful when parameters are coming from configuration or scripting contexts.
-     *
-     * @param str The string representation ("HEAD", "TAIL", "INVOKE", "RETURN").
-     * @return The matching `At` enum value, or `At.HEAD` as a fallback.
-     */
     public static function atFromStr(str:String):At {
         switch (str) {
             case "HEAD": return At.HEAD;

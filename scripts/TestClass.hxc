@@ -19,5 +19,9 @@ class TestClass extends ScriptedModule {
 
     public function test() {
         trace("test() called");
+
+        trace("test() called x2");
+
+        return trace("Test Return");
     }
 }

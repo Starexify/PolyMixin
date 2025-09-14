@@ -2,25 +2,15 @@ import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
-import polymod.hscript._internal.PolymodScriptClass;
 
 class PolyMixin extends ScriptedModule {
     var injected = false;
 
     var cachedFuncDecl:Map<String, FunctionDecl>;
-    var emptyEBlock:Expr;
-    var returnBlock:Expr;
 
     function new() {
         super("PolyMixins");
         cachedFuncDecl = ReflectUtil.getField(this, "_cachedFunctionDecls");
-        emptyEBlock = cachedFuncDecl.get("emptyFunc").expr.e;
-        switch (emptyEBlock) {
-            case Expr.EBlock(exprs):
-                returnBlock = exprs[0];
-                exprs.remove(exprs[0]);
-            default: trace("Well this shouldn't happen");
-        }
     }
 
     function testMixin() {
@@ -34,7 +24,7 @@ class PolyMixin extends ScriptedModule {
 
     override public function onUpdate(event:UpdateScriptEvent) {
         if (!injected) {
-            var success = injectByName(TestClass.instance, "test", this, "testMixin");
+            var success = injectByName(TestClass.instance, "test", this, "testMixin", At.RETURN);
             if (success) trace("Function injection succeeded!");
             injected = true;
         }
@@ -49,7 +39,8 @@ class PolyMixin extends ScriptedModule {
      * @param sourceFuncName Name of the source function to inject.
      * @return True if injection succeeded, false otherwise.
      */
-    public static function injectByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String):Bool {
+    public static function injectByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:At = At.HEAD):Bool {
+        if (at == null) at = At.TAIL;
         var targetFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(targetInstance, "_cachedFunctionDecls");
         var sourceFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(sourceInstance, "_cachedFunctionDecls");
         if (targetFuncs == null || sourceFuncs == null) return false;
@@ -59,7 +50,7 @@ class PolyMixin extends ScriptedModule {
 
         if (targetFunc == null || sourceFunc == null) return false;
 
-        var newFunc = inject(targetFunc, sourceFunc);
+        var newFunc = inject(targetFunc, sourceFunc, at);
         targetFuncs.set(targetFuncName, newFunc);
 
         return true;
@@ -77,20 +68,34 @@ class PolyMixin extends ScriptedModule {
      * var injectedFunc = inject(originalFunction, mixinFunction);
      * // originalFunction now executes both its original code and the code from mixinFunction
      */
-    public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl):FunctionDecl {
-        var sourceFuncExpr:Expr.EBlock = sourceFunc.expr.e;
-        var sourceFuncExprs:Array<Expr> = [];
+    public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At = At.HEAD):FunctionDecl {
+        var sourceExpr:Expr.EBlock = sourceFunc.expr.e;
+        var sourceExprs:Array<Expr> = [];
 
-        switch (sourceFuncExpr) {
+        switch (sourceExpr) {
             case Expr.EBlock(exprs):
-                sourceFuncExprs = exprs;
+                sourceExprs = exprs;
             default:
         }
 
         switch (targetFunc.expr.e) {
-            case Expr.EBlock(exprs):
-                for (expr in sourceFuncExprs) exprs.push(expr);
+            case Expr.EBlock(targetExprs):
+                switch (at) {
+                    case At.HEAD:
+                        for (i in 0...sourceExprs.length) targetExprs.insert(i, sourceExprs[i]);
+                    case At.RETURN:
+                        for (i in 0...targetExprs.length) {
+                            switch (targetExprs[i].e) {
+                                case Expr.EReturn(returnExpr):
+                                    trace("Found return at index " + i + ", injecting code before it");
+                                    for (j in 0...sourceExprs.length) targetExprs.insert(i + j, sourceExprs[j]);
+                            }
+                        }
+                    case At.TAIL:
+                        for (expr in sourceExprs) targetExprs.push(expr);
+                }
             default:
+                trace("Target function is NOT an EBlock!");
         }
 
         return targetFunc;
@@ -111,8 +116,10 @@ class PolyMixin extends ScriptedModule {
     public static function replace(targetFunc:FunctionDecl, sourceFunc:FunctionDecl):FunctionDecl {
         return sourceFunc;
     }
+}
 
-    function emptyFunc() {
-        return;
-    }
+enum At {
+    HEAD; // Inject at beginning
+    RETURN; //Before every return statement
+    TAIL; // Inject at end
 }

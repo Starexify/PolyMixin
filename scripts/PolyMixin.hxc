@@ -1,33 +1,48 @@
-import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
+import Lambda;
 
+/**
+ * Utility module providing static methods and functions for injection, overwriting or modifying
+ * `PolymodScriptedClass` instances dynamically
+ */
 class PolyMixin extends ScriptedModule {
-    var injected = false;
-
-    var cachedFuncDecl:Map<String, FunctionDecl>;
 
     function new() {
         super("PolyMixins");
-        cachedFuncDecl = ReflectUtil.getField(this, "_cachedFunctionDecls");
     }
 
-    function testMixin() {
-        trace("Injection in test() was successful!");
-        trace("Injection in test() was successful! x2");
-    }
+    /**
+     * Injects a function from one instance into another instance.
+     *
+     * @param targetInstance The instance whose function definitions will be modified.
+     * @param sourceInstance The instance containing the source function.
+     * @param sourceFuncName The name of the function to inject from the source instance.
+     * @return True if injection succeeded, false otherwise.
+     *
+     *
+     * @note This method modifies both the function cache and the AST field list.
+     */
+    public static function injectFunction(targetInstance:Dynamic, sourceInstance:Dynamic, sourceFuncName:String):Bool {
+        var targetFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(targetInstance, "_cachedFunctionDecls");
+        var targetFields:Array<FieldDecl> = ReflectUtil.getField(targetInstance, "_c").fields;
+        var cachedFields:Map<String, FieldDecl> = ReflectUtil.getField(targetInstance, "_cachedFieldDecls");
 
-    override public function onStateChangeBegin(event:StateChangeScriptEvent) {
-        TestClass.instance.test();
-    }
+        var sourceFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(sourceInstance, "_cachedFunctionDecls");
+        var sourceFields:Array<FieldDecl> = ReflectUtil.getField(sourceInstance, "_c").fields;
 
-    override public function onUpdate(event:UpdateScriptEvent) {
-        if (!injected) {
-            var success = injectByName(TestClass.instance, "test", this, "testMixin", At.RETURN);
-            if (success) trace("Function injection succeeded!");
-            injected = true;
-        }
+        if (targetFuncs == null || sourceFuncs == null || targetFields == null || cachedFields == null) return false;
+
+        var sourceFunc = sourceFuncs.get(sourceFuncName);
+        var sourceField:FieldDecl = Lambda.find(sourceFields, (f) -> f.name == sourceFuncName);
+        if (sourceFunc == null || sourceField == null) return false;
+
+        targetFields.push(sourceField);
+        cachedFields.set(sourceFuncName, sourceField);
+        targetFuncs.set(sourceFuncName, sourceFunc);
+
+        return true;
     }
 
     /**
@@ -113,7 +128,7 @@ class PolyMixin extends ScriptedModule {
      * var replacedFunc = replace(originalFunction, mixinFunction);
      * // injectedFunc is now mixinFunction
      */
-    public static function replace(targetFunc:FunctionDecl, sourceFunc:FunctionDecl):FunctionDecl {
+    public static function overwrite(targetFunc:FunctionDecl, sourceFunc:FunctionDecl):FunctionDecl {
         return sourceFunc;
     }
 }

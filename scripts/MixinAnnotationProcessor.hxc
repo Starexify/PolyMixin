@@ -2,9 +2,21 @@ import funkin.util.ReflectUtil;
 import hscript.Expr;
 import polymod.hscript._internal.PolymodClassDeclEx;
 
+/**
+ * MixinAnnotationProcessor handles applying mixins defined via metadata (annotations)
+ *
+ * It supports @:Overwrite, @:Inject, @:ModifyReturn, and @:InjectFunction
+ */
 class MixinAnnotationProcessor {
 
-    public static function applyMixins(source:Dynamic, targetInstance:Dynamic):Bool {
+    /**
+     * Apply all mixins from the `source` class to the `targetInstance`.
+     * This iterates both instance and static fields of the source class.
+     * @param source The class containing mixins.
+     * @param target The object/class to apply mixins to.
+     * @return true if the class definition was found and processing occurred, false otherwise.
+     */
+    public static function applyMixins(source:Dynamic, target:Dynamic):Bool {
         var _c:PolymodClassDeclEx = ReflectUtil.getField(source, "_c");
 
         if (_c == null) {
@@ -12,49 +24,51 @@ class MixinAnnotationProcessor {
             return false;
         }
 
-        applyMixinField(_c.fields, targetInstance, source, _c.name);
-        applyMixinField(_c.staticFields, targetInstance, source, _c.name);
+        applyFieldMixins(_c.fields, target, source, _c.name);
+        applyFieldMixins(_c.staticFields, target, source, _c.name);
 
         return true;
     }
 
-    public static function applyMixinField(fields:Array<FieldDecl>, target:Dynamic, source:Dynamic, className:String):Void {
+    public static function applyFieldMixins(fields:Array<FieldDecl>, source:Dynamic, target:Dynamic, className:String) {
         if (fields == null) return;
         for (field in fields) {
             for (meta in field.meta) {
                 var funcName = field.name;
-                switch (meta.name) {
-                    case ":Overwrite":
-                        var methodName:String = retrieveParams(meta, ["method"]).method;
-                        if (methodName != null) {
-                            trace("Overwriting method: " + methodName + "() with " + funcName + "() from class " + className);
-                            PolyMixin.overwrite(target, methodName, source, funcName);
-                        } else trace("Warning: method name is null for " + funcName);
-                    case ":Inject":
-                        var params:InjectionParams = retrieveParams(meta, ["method", "at", "target", "ordinal", "shift"]);
-                        if (params.method != null) {
-                            trace("Injecting into method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
-                            switch (params.at) {
-                                case "INVOKE":
-                                    if (params.target != null) PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at, params.target, params.ordinal, params.shift);
-                                    else trace("Warning: target is null for " + funcName);
-                                default:
-                                    PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at);
-                            }
-                        } else trace("Warning: method name is null for " + funcName);
-                    case ":ModifyReturn":
-                        var params:ModifyReturnParams = retrieveParams(meta, ["method", "at", "call"]);
-                        if (params.method != null) {
-                            trace("Modifying return from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
-                            if (params.method != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call);
-                        } else trace("Warning: method name is null for " + funcName);
-                    case ":InjectFunction":
-                        trace("Injecting function: " + funcName + "() from class " + className);
-                        PolyMixin.injectFunction(target, source, funcName);
-
-                    default:
-                }
+                handleMixins(meta, funcName, source, target, className);
             }
+        }
+    }
+
+    public static function handleMixins(meta:Metadata, funcName:String, source:Dynamic, target:Dynamic, className:String):Bool {
+        return switch (meta.name) {
+            case ":Overwrite":
+                var methodName:String = retrieveParams(meta, ["method"]).method;
+                if (methodName != null) {
+                    trace("Overwriting method: " + methodName + "() with " + funcName + "() from class " + className);
+                    PolyMixin.overwrite(target, methodName, source, funcName);
+                } else trace("Warning: method name is null for " + funcName);
+            case ":Inject":
+                var params:InjectionParams = retrieveParams(meta, ["method", "at", "target", "ordinal", "shift"]);
+                if (params.method != null) {
+                    trace("Injecting into method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    switch (params.at) {
+                        case "INVOKE":
+                            if (params.target != null) PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at, params.target, params.ordinal, params.shift);
+                            else trace("Warning: target is null for " + funcName);
+                        default:
+                            PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at);
+                    }
+                } else trace("Warning: method name is null for " + funcName);
+            case ":ModifyReturn":
+                var params:ModifyReturnParams = retrieveParams(meta, ["method", "at", "call"]);
+                if (params.method != null) {
+                    trace("Modifying return from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    if (params.method != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call);
+                } else trace("Warning: method name is null for " + funcName);
+            case ":InjectFunction":
+                trace("Injecting function: " + funcName + "() from class " + className);
+                PolyMixin.injectFunction(target, source, funcName);
         }
     }
 

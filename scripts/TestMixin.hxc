@@ -1,0 +1,28 @@
+import funkin.modding.module.ScriptedModule;
+import funkin.modding.events.ScriptEvent.StateChangeScriptEvent;
+import funkin.modding.events.ScriptEvent.UpdateScriptEvent;
+
+class TestMixin extends ScriptedModule {
+    var injected:Bool = false;
+    override public function onStateChangeBegin(event:StateChangeScriptEvent) {
+       Test.instance.test();
+        Test.instance.testTwo();
+    }
+
+    override public function onUpdate(event:UpdateScriptEvent) {
+        if (injected) return;
+        injected = MixinAnnotationProcessor.applyMixins(this, Test.instance);
+    }
+
+    @:Overwrite(method = "test")
+    function testOverwrite() {
+        trace("Overwrote test()");
+    }
+
+    @:Inject(method = "testTwo", at = "HEAD")
+    function testInject() {
+        trace("Injected into testTwo()");
+    }
+
+
+}

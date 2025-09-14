@@ -1,0 +1,21 @@
+import funkin.modding.module.ScriptedModule;
+
+class Test extends ScriptedModule {
+    private static var _instance:Test;
+    public static var instance(get, set):Test;
+    static function set_instance(value:Test):Test { return _instance = value; }
+    static function get_instance():Test { return _instance; }
+
+    public function new() {
+        super("Test");
+        Test.instance = this;
+    }
+
+    public function test() {
+        trace("test() called");
+    }
+
+    public function testTwo() {
+        trace("testTwo() called");
+    }
+}

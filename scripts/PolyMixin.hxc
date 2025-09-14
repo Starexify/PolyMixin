@@ -358,6 +358,7 @@ class PolyMixin extends ScriptedModule {
         var targetFuncs = ASTUtil.getFuncCache(targetInstance);
         var sourceFuncs = ASTUtil.getFuncCache(sourceInstance);
 
+        if (targetFuncs == null)  trace("Failed to get function from target");
         if (targetFuncs == null || sourceFuncs == null) {
             trace("Failed to get function caches");
             return null;
@@ -367,12 +368,12 @@ class PolyMixin extends ScriptedModule {
         var sourceFunc = sourceFuncs.get(sourceFuncName);
 
         if (targetFunc == null) {
-            trace('Target function "$targetFuncName" not found');
+            trace("Target function " + targetFuncName + " not found");
             return null;
         }
 
         if (sourceFunc == null) {
-            trace('Source function "$sourceFuncName" not found');
+            trace("Source function " + sourceFuncName + " not found");
             return null;
         }
 

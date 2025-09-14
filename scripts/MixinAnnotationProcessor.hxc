@@ -1,0 +1,82 @@
+import funkin.util.ReflectUtil;
+import hscript.Expr;
+import polymod.hscript._internal.PolymodClassDeclEx;
+
+class MixinAnnotationProcessor {
+
+    public static function applyMixins(source:Dynamic, targetInstance:Dynamic):Bool {
+        var _c:PolymodClassDeclEx = ReflectUtil.getField(source, "_c");
+
+        if (_c == null) {
+            trace("No class definition found.");
+            return false;
+        }
+
+        var className = _c.name;
+        applyFieldMixins(_c.fields, targetInstance, source, _c.name);
+        applyFieldMixins(_c.staticFields, targetInstance, source, _c.name);
+
+        return true;
+    }
+
+    public static function applyFieldMixins(fields:Array<FieldDecl>, target:Dynamic, source:Dynamic, className:String):Void {
+        if (fields == null) return;
+        for (field in fields) {
+            for (meta in field.meta) {
+                switch (meta.name) {
+                    case ":Overwrite":
+                        var funcName = field.name;
+                        var methodName:String = retrieveParams(meta, ["method"]).method;
+
+                        if (methodName != null) {
+                            trace("Overwriting method: " + methodName + "() with " + funcName + "() from class " + className);
+                            PolyMixin.overwrite(target, methodName, source, funcName);
+                        } else trace("Warning: method name is null for " + funcName);
+                    case ":Inject":
+                        var funcName = field.name;
+                        var params:InjectionParams = retrieveParams(meta, ["method", "at", "target", "ordinal", "shift"]);
+
+                        if (params != null) {
+                            trace("Injecting into method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                            PolyMixin.injectByName(target, params.method, source, funcName, PolyMixin.atFromStr(params.at));
+                        } else trace("Warning: method name is null for " + funcName);
+                    default:
+                }
+            }
+        }
+    }
+
+    public static function retrieveParams(meta:Metadata, ?allowed:Array<String>):Dynamic {
+        var result:Dynamic = {};
+        for (param in meta.params) {
+            switch (param.e) {
+                case Expr.EBinop(_, e1, e2):
+                    switch (e1.e) {
+                        case Expr.EIdent(paramName):
+                            if (allowed == null || allowed.indexOf(paramName) != -1) {
+                                var value:Dynamic = null;
+
+                                switch (e2.e) {
+                                    case Expr.EConst(c):
+                                        switch (c) {
+                                            case Const.CString(str):
+                                                value = str;
+                                        }
+                                    case Expr.EIdent(id):
+                                        value = id;
+                                    case _:
+                                        trace("Unhandled RHS for " + paramName + ": " + e2.e);
+                                }
+
+                                ReflectUtil.setField(result, paramName, value);
+                            }
+                    }
+            }
+        }
+
+        return result;
+    }
+}
+
+typedef BasicParams = {method:String}
+typedef InjectionParams = {method:String, at:String, target:String, ordinal:Int}

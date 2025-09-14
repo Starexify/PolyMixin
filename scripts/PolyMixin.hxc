@@ -8,8 +8,14 @@ import Lambda;
  * `PolymodScriptedClass` instances dynamically by manipulating their AST.
  */
 class PolyMixin extends ScriptedModule {
+    private static var _instance:PolyMixin;
+    public static var instance(get, set):PolyMixin;
+    static function set_instance(value:PolyMixin):PolyMixin { return _instance = value; }
+    static function get_instance():PolyMixin { return _instance; }
+
     function new() {
         super("PolyMixin");
+        PolyMixin.instance = this;
     }
 
     /**
@@ -155,7 +161,7 @@ class PolyMixin extends ScriptedModule {
 
         var sourceFunc = sourceFuncs.get(sourceFuncName);
         if (sourceFunc == null) {
-            trace('Source function "$sourceFuncName" not found');
+            trace("Source function " + sourceFuncName + " not found");
             return false;
         }
 
@@ -214,6 +220,10 @@ class PolyMixin extends ScriptedModule {
 
         validation.targetFuncs.set(targetFuncName, newFunc);
         return true;
+    }
+
+    public static function injectByNameStr(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:String, ?target:String, ?ordinal:Int, ?shift:String):Bool {
+        return injectByName(targetInstance, targetFuncName, sourceInstance, sourceFuncName, PolyMixin.instance.atFromStr(at), target, ordinal, PolyMixin.instance.shiftFromStr(shift));
     }
 
     public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At):FunctionDecl {
@@ -344,14 +354,22 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
-    public static function atFromStr(str:String):At {
-        switch (str) {
-            case "HEAD": return At.HEAD;
-            case "TAIL": return At.TAIL;
-            case "INVOKE": return At.INVOKE;
-            case "RETURN": return At.RETURN;
-            default: return At.HEAD;
-        }
+    public function shiftFromStr(str:String):Shift {
+        return switch (str) {
+            case "BEFORE": Shift.BEFORE;
+            case "AFTER": Shift.AFTER;
+            default: Shift.BEFORE;
+        };
+    }
+
+    public function atFromStr(str:String):At {
+        return switch (str) {
+            case "HEAD": At.HEAD;
+            case "TAIL": At.TAIL;
+            case "INVOKE": At.INVOKE;
+            case "RETURN": At.RETURN;
+            default: At.HEAD;
+        };
     }
 
     public static function validateInstances(targetInstance:Dynamic, sourceInstance:Dynamic, targetFuncName:String, sourceFuncName:String):Null<ValidationDef> {

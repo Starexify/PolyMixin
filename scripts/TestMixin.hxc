@@ -1,12 +1,14 @@
+import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
-import funkin.modding.events.ScriptEvent.StateChangeScriptEvent;
-import funkin.modding.events.ScriptEvent.UpdateScriptEvent;
 
 class TestMixin extends ScriptedModule {
     var injected:Bool = false;
+
     override public function onStateChangeBegin(event:StateChangeScriptEvent) {
-       Test.instance.test();
+        Test.instance.test();
         Test.instance.testTwo();
+        Test.instance.testThree();
+        Test.instance.newTest();
     }
 
     override public function onUpdate(event:UpdateScriptEvent) {
@@ -19,10 +21,25 @@ class TestMixin extends ScriptedModule {
         trace("Overwrote test()");
     }
 
-    @:Inject(method = "testTwo", at = "HEAD")
+
+    @:Inject(method = "testTwo", at = "INVOKE", target = "doSmth", ordinal = 2)
     function testInject() {
         trace("Injected into testTwo()");
     }
 
 
+    @:ModifyReturn(method = "testThree", call = "testReturnCall")
+    function testReturn(original:Int) {
+        return trace(original + 10);
+    }
+
+    function testReturnCall(original:Int) {
+        testReturn(original);
+    }
+
+
+    @:InjectFunction
+    function newTest() {
+        trace("New Test injected into class");
+    }
 }

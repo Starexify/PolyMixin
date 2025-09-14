@@ -16,6 +16,19 @@ class Test extends ScriptedModule {
     }
 
     public function testTwo() {
-        trace("testTwo() called");
+        trace("test() called");
+        doSmth();
+        doSmth();
+        doSmth();
+        trace("test() called x2");
+        return trace("Test Return");
+    }
+
+    function doSmth() {
+        trace("doSmth() called");
+    }
+
+    public function testThree() {
+        return 20;
     }
 }

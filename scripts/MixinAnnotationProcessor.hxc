@@ -12,34 +12,46 @@ class MixinAnnotationProcessor {
             return false;
         }
 
-        var className = _c.name;
-        applyFieldMixins(_c.fields, targetInstance, source, _c.name);
-        applyFieldMixins(_c.staticFields, targetInstance, source, _c.name);
+        applyMixinField(_c.fields, targetInstance, source, _c.name);
+        applyMixinField(_c.staticFields, targetInstance, source, _c.name);
 
         return true;
     }
 
-    public static function applyFieldMixins(fields:Array<FieldDecl>, target:Dynamic, source:Dynamic, className:String):Void {
+    public static function applyMixinField(fields:Array<FieldDecl>, target:Dynamic, source:Dynamic, className:String):Void {
         if (fields == null) return;
         for (field in fields) {
             for (meta in field.meta) {
+                var funcName = field.name;
                 switch (meta.name) {
                     case ":Overwrite":
-                        var funcName = field.name;
                         var methodName:String = retrieveParams(meta, ["method"]).method;
-
                         if (methodName != null) {
                             trace("Overwriting method: " + methodName + "() with " + funcName + "() from class " + className);
                             PolyMixin.overwrite(target, methodName, source, funcName);
                         } else trace("Warning: method name is null for " + funcName);
                     case ":Inject":
-                        var funcName = field.name;
                         var params:InjectionParams = retrieveParams(meta, ["method", "at", "target", "ordinal", "shift"]);
-
-                        if (params != null) {
+                        if (params.method != null) {
                             trace("Injecting into method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
-                            PolyMixin.injectByName(target, params.method, source, funcName, PolyMixin.atFromStr(params.at));
+                            switch (params.at) {
+                                case "INVOKE":
+                                    if (params.target != null) PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at, params.target, params.ordinal, params.shift);
+                                    else trace("Warning: target is null for " + funcName);
+                                default:
+                                    PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at);
+                            }
                         } else trace("Warning: method name is null for " + funcName);
+                    case ":ModifyReturn":
+                        var params:ModifyReturnParams = retrieveParams(meta, ["method", "at", "call"]);
+                        if (params.method != null) {
+                            trace("Modifying return from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                            if (params.method != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call);
+                        } else trace("Warning: method name is null for " + funcName);
+                    case ":InjectFunction":
+                        trace("Injecting function: " + funcName + "() from class " + className);
+                        PolyMixin.injectFunction(target, source, funcName);
+
                     default:
                 }
             }
@@ -61,6 +73,8 @@ class MixinAnnotationProcessor {
                                         switch (c) {
                                             case Const.CString(str):
                                                 value = str;
+                                            case Const.CInt(i):
+                                                value = i;
                                         }
                                     case Expr.EIdent(id):
                                         value = id;
@@ -79,4 +93,5 @@ class MixinAnnotationProcessor {
 }
 
 typedef BasicParams = {method:String}
-typedef InjectionParams = {method:String, at:String, target:String, ordinal:Int}
+typedef InjectionParams = {method:String, at:String, target:String, ordinal:Int, shift:String}
+typedef ModifyReturnParams = {method:String, at:String, call:String}

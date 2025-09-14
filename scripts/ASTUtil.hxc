@@ -1,0 +1,8 @@
+import funkin.util.ReflectUtil;
+import hscript.Expr.FunctionDecl;
+
+class ASTUtil {
+    public static function getFuncCache(instance:Dynamic):Map<String, FunctionDecl> {
+        return ReflectUtil.getField(instance, "_cachedFunctionDecls");
+    }
+}

@@ -29,27 +29,26 @@ class PolyMixin extends ScriptedModule {
         cachedFuncDecl = ReflectUtil.getField(this, "_cachedFunctionDecls");
         switch (cachedFuncDecl.get("emptyFunc").expr.e) {
             case Expr.EBlock(exprs):
-                trace(exprs[0]);
-
+                emptyECall = exprs[0];
             default: trace("Well this shouldn't happen");
         }
     }
 
-    public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:At):Bool {
+    public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, at:At):Bool {
         if (at == null) at = At.HEAD;
-        var targetFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(targetInstance, "_cachedFunctionDecls");
-        var sourceFuncs:Map<String, FunctionDecl> = ReflectUtil.getField(sourceInstance, "_cachedFunctionDecls");
-        if (targetFuncs == null || sourceFuncs == null) return false;
+
+        var targetFuncs = ASTUtil.getFuncCache(targetInstance);
+        var sourceFuncs =ASTUtil.getFuncCache(sourceInstance);
+        if (targetFuncs == null) return false;
 
         var targetFunc = targetFuncs.get(targetFuncName);
-        var sourceFunc = sourceFuncs.get(sourceFuncName);
-
-        if (targetFunc == null || sourceFunc == null) return false;
+        var callFunc = sourceFuncs.get(callFuncName);
+        if (targetFunc == null) return false;
 
         var newFunc = switch (at) {
             case At.RETURN:
                 injectFunction(targetInstance, sourceInstance, sourceFuncName);
-                modifyReturnValue(targetFunc, sourceFunc, sourceFuncName);
+                modifyReturnValue(targetFunc, callFunc, sourceFuncName);
             default: trace("Only At.Return works at the moment");
         }
 
@@ -58,69 +57,44 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
-    public static function modifyReturnValue(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, sourceFuncName:String) {
-        var sourceExpr:Expr.EBlock = sourceFunc.expr.e;
-        var sourceExprs:Array<Expr> = [];
-
-        /* trace(sourceFunc);
-        trace(targetFunc);*/
-
-        switch (sourceExpr) {
-            case Expr.EBlock(exprs): sourceExprs = exprs;
-            default: trace("Source function is not an EBlock, please provide an actual function!");
+    public static function modifyReturnValue(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String) {
+        var newCall = null;
+        switch (callFunc.expr.e) {
+            case Expr.EBlock(expr):
+                newCall = expr[0].e;
         }
-
-        var modifierExpr:Expr = null;
-        if (sourceExprs.length > 0) {
-            switch (sourceExprs[0].e) {
-                case Expr.EReturn(returnExpr):
-                    modifierExpr = returnExpr;
-                default: trace("Source function should contain a return statement!");
-            }
-        }
+        if (newCall == null) trace("The source function " + sourceFuncName + " must provide an empty function recall for mixins to be able to modify the return value !");
 
         switch (targetFunc.expr.e) {
             case Expr.EBlock(targetExprs):
                 for (i in 0...targetExprs.length) {
                     switch (targetExprs[i].e) {
-                        case Expr.EReturn(originalReturnExpr):
+                        case Expr.EReturn(e):
                             var oldReturn = targetExprs[i];
-                            var wrappedReturn = wrapReturn(oldReturn, modifierExpr, originalReturnExpr);
+                            var wrappedReturn = wrapReturn(oldReturn, newCall, sourceFuncName);
                             targetExprs[i] = wrappedReturn;
                         default: trace("No return statement found in the function, no mixins were applied!");
                     }
                 }
-            default:
-                trace("Target function is NOT an EBlock!");
+            default: trace("Target function is NOT an EBlock!");
         }
         //trace(targetFunc.expr.e);
 
         return targetFunc;
     }
 
-    public static function wrapReturn(oldReturn:Expr, newValue:Expr, actualValue:Expr):Expr {
-        //trace(oldReturn);
-        //trace(actualValue);
-        //trace(newValue);
-        /*switch (oldReturn.e) {
+    public static function wrapReturn(oldReturn:Expr, newCall:Expr, sourceFuncName:String):Expr {
+        switch (oldReturn.e) {
             case Expr.EReturn(expr):
-                trace(newValue.e);
-                switch (newValue.e) {
-                    case Expr.EBinop(op, e1, e2):
-                        switch (e1.e) {
-                            case Expr.EIdent(name):
-                                if (name == "original") e1.e = actualValue.e;
-                                else e2.e = actualValue.e;
-                        }
-                    default: trace("In this mixin version only bin operations can be modified with the original value !");
+                var original:Expr = expr.e;
+                trace(newCall);
+                switch (newCall) {
+                    case Expr.ECall(callExpr, params):
+                        params[0].e = original;
                 }
-                trace(newValue.e);
-                trace(expr.e);
-                expr.e = newValue.e;
-                trace(expr.e);
-        }*/
-
-        //trace(oldReturn);
+                trace(newCall);
+                expr.e = newCall;
+        }
         return oldReturn;
     }
 

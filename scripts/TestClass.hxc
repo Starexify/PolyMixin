@@ -18,6 +18,6 @@ class TestClass extends ScriptedModule {
     }
 
     public function test() {
-        return trace("");
+        return 20;
     }
 }

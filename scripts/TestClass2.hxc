@@ -16,17 +16,17 @@ class TestClass2 extends ScriptedModule {
 
     override public function onUpdate(event:UpdateScriptEvent) {
         if (!injected) {
-            var success = PolyMixin.modifyByName(TestClass.instance, "test", this, "testMixin", At.RETURN);
+            var success = PolyMixin.modifyByName(TestClass.instance, "test", this, "testMixin", "testMixinCall", At.RETURN);
             if (success) trace("Injection succeeded!");
             injected = success;
         }
     }
 
     function testMixin(original:Int) {
-        return test();
+        return original + 10;
     }
 
-    function test() {
-
+    function testMixinCall(original:Int) {
+        testMixin(original);
     }
 }

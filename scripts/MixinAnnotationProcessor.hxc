@@ -43,8 +43,40 @@ class MixinAnnotationProcessor {
         return applyMixins(source, ASTUtil.getScriptedLevel(id));
     }
 
+    public static function applyNoteStyleMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedNoteStyle(id));
+    }
+
+    public static function applyPlayerMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedPlayer(id));
+    }
+
+    public static function applyConversationMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedConversation(id));
+    }
+
+    public static function applyDialogueMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedDialogue(id));
+    }
+
+    public static function applySpeakerMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedSpeaker(id));
+    }
+
+    public static function applyAlbumMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedAlbum(id));
+    }
+
     public static function applyStageMixins(source:Dynamic, id:String) {
         return applyMixins(source, ASTUtil.getScriptedStage(id));
+    }
+
+    public static function applyStickerMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedSticker(id));
+    }
+
+    public static function applyFreeplayStyleMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedFreeplayStyle(id));
     }
 
     // WHY THE HELL IS THIS NOT WORKING AND IT GETS REPLACED IF YOU FETCH THE CHARACTER AGAIN

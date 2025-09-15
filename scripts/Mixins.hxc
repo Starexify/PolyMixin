@@ -1,5 +1,13 @@
+import funkin.data.dialogue.ConversationRegistry;
+import funkin.data.dialogue.DialogueBoxRegistry;
+import funkin.data.dialogue.SpeakerRegistry;
+import funkin.data.freeplay.album.AlbumRegistry;
+import funkin.data.freeplay.player.PlayerRegistry;
+import funkin.data.freeplay.style.FreeplayStyleRegistry;
+import funkin.data.notestyle.NoteStyleRegistry;
 import funkin.data.song.SongRegistry;
 import funkin.data.stage.StageRegistry;
+import funkin.data.stickers.StickerRegistry;
 import funkin.data.story.level.LevelRegistry;
 import funkin.modding.module.ModuleHandler;
 import funkin.modding.module.ScriptedModule;
@@ -12,7 +20,9 @@ import polymod.hscript._internal.PolymodScriptClass;
 class Mixins extends ScriptedModule {
     private static var _instance:Mixins;
     public static var instance(get, set):Mixins;
+
     static function set_instance(value:Mixins):Mixins { return _instance = value; }
+
     static function get_instance():Mixins { return _instance; }
 
     public function new() {
@@ -30,8 +40,8 @@ class Mixins extends ScriptedModule {
         //trace(path);
     }
 
-    function retrieveParams(className:String):Null<MixinParam> {
-        var meta = getMetadata(className);
+    function retrieveParams(className:String, ?params:SongParams):Null<MixinParam> {
+        var meta = getMetadata(className, params);
         if (meta == null || meta.name == null) return null;
 
         var result:MixinParam = { targets: [], kind: kindFromStr(meta.name) };
@@ -64,7 +74,39 @@ class Mixins extends ScriptedModule {
         } catch (e:Dynamic) {}
 
         if (cls == null) try {
+            cls = NoteStyleRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = PlayerRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = ConversationRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = DialogueBoxRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = SpeakerRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = AlbumRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
             cls = StageRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = StickerRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = FreeplayStyleRegistry.instance.fetchEntry(name)._asc;
         } catch (e:Dynamic) {}
 
         if (cls == null) {
@@ -82,7 +124,15 @@ class Mixins extends ScriptedModule {
             case ":ModuleMixin": MixinKind.Mixin;
             case ":SongMixin": MixinKind.SongMixin;
             case ":LevelMixin": MixinKind.LevelMixin;
+            case ":NoteStyleMixin": MixinKind.NoteStyleMixin;
+            case ":PlayerMixin": MixinKind.PlayerMixin;
+            case ":DialogueBoxMixin": MixinKind.DialogueBoxMixin;
+            case ":DialogueMixin": MixinKind.DialogueBoxMixin;
+            case ":SpeakerMixin": MixinKind.SpeakerMixin;
+            case ":AlbumMixin": MixinKind.AlbumMixin;
             case ":StageMixin": MixinKind.StageMixin;
+            case ":StickerMixin": MixinKind.StickerMixin;
+            case ":FreeplayStyleMixin": MixinKind.FreeplayStyleMixin;
         };
     }
 }
@@ -91,7 +141,15 @@ enum MixinKind {
     Mixin;
     SongMixin;
     LevelMixin;
+    NoteStyleMixin;
+    PlayerMixin;
+    ConversationMixin;
+    DialogueBoxMixin;
+    SpeakerMixin;
+    AlbumMixin;
     StageMixin;
+    StickerMixin;
+    FreeplayStyleMixin;
 }
 
 typedef MixinParam = {targets:Array<String>, kind:MixinKind}

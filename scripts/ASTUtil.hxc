@@ -1,5 +1,13 @@
+import funkin.data.dialogue.ConversationRegistry;
+import funkin.data.dialogue.DialogueBoxRegistry;
+import funkin.data.dialogue.SpeakerRegistry;
+import funkin.data.freeplay.album.AlbumRegistry;
+import funkin.data.freeplay.player.PlayerRegistry;
+import funkin.data.freeplay.style.FreeplayStyleRegistry;
+import funkin.data.notestyle.NoteStyleRegistry;
 import funkin.data.song.SongRegistry;
 import funkin.data.stage.StageRegistry;
+import funkin.data.stickers.StickerRegistry;
 import funkin.data.story.level.LevelRegistry;
 import funkin.modding.module.ModuleHandler;
 import funkin.play.character.CharacterDataParser;
@@ -32,8 +40,40 @@ class ASTUtil {
         return LevelRegistry.instance.fetchEntry(name)._asc;
     }
 
+    public static function getScriptedNoteStyle(name:String):PolymodScriptClass {
+        return NoteStyleRegistry.instance.fetchEntry(name)._asc;
+    }
+
+    public static function getScriptedPlayer(name:String):PolymodScriptClass {
+        return PlayerRegistry.instance.fetchEntry(name)._asc;
+    }
+
+    public static function getScriptedConversation(name:String):PolymodScriptClass {
+        return ConversationRegistry.instance.fetchEntry(name)._asc;
+    }
+
+    public static function getScriptedDialogue(name:String):PolymodScriptClass {
+        return DialogueBoxRegistry.instance.fetchEntry(name)._asc;
+    }
+
+    public static function getScriptedSpeaker(name:String):PolymodScriptClass {
+        return SpeakerRegistry.instance.fetchEntry(name)._asc;
+    }
+
+    public static function getScriptedAlbum(name:String):PolymodScriptClass {
+        return AlbumRegistry.instance.fetchEntry(name)._asc;
+    }
+
     public static function getScriptedStage(name:String):PolymodScriptClass {
         return StageRegistry.instance.fetchEntry(name)._asc;
+    }
+
+    public static function getScriptedSticker(name:String):PolymodScriptClass {
+        return StickerRegistry.instance.fetchEntry(name)._asc;
+    }
+
+    public static function getScriptedFreeplayStyle(name:String):PolymodScriptClass {
+        return FreeplayStyleRegistry.instance.fetchEntry(name)._asc;
     }
 
     public static function getScriptedCharacter(name:String) {

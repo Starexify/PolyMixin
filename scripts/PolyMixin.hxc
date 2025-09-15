@@ -10,7 +10,9 @@ import Lambda;
 class PolyMixin extends ScriptedModule {
     private static var _instance:PolyMixin;
     public static var instance(get, set):PolyMixin;
+
     static function set_instance(value:PolyMixin):PolyMixin { return _instance = value; }
+
     static function get_instance():PolyMixin { return _instance; }
 
     function new() {
@@ -63,7 +65,7 @@ class PolyMixin extends ScriptedModule {
      *
      * // Resulting behavior: getValue() now returns 15 instead of 5.
      */
-    public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, ?at:At):Bool {
+    public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, at:At, ?target:String, ?ordinal:Int):Bool {
         if (at == null) at = At.RETURN;
 
         var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
@@ -79,8 +81,11 @@ class PolyMixin extends ScriptedModule {
             case At.RETURN:
                 injectFunction(targetInstance, sourceInstance, sourceFuncName);
                 modifyReturnValue(validation.targetFunc, callFunc, sourceFuncName);
+            case At.INVOKE:
+                injectFunction(targetInstance, sourceInstance, sourceFuncName);
+                modifyExprValue(validation.targetFunc, callFunc, sourceFuncName, target, ordinal);
             default:
-                trace("Only At.Return works at the moment");
+                trace("Only At.RETURN/At.INVOKE works at the moment");
                 return false;
         }
 
@@ -88,7 +93,80 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
-    public static function modifyReturnValue(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String) {
+    public static function modifyExprValue(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String, ?target:String, ?ordinal:Int):FunctionDecl {
+        /*      if (target == "" || target == null) {
+            trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
+            return targetFunc;
+        }*/
+        if (ordinal == null) ordinal = 0;
+
+        var newCall = switch (callFunc.expr.e) {
+            case Expr.EBlock(expr): expr[0].e;
+            default:
+                trace("The source function " + sourceFuncName + " must provide an empty function recall for mixins to be able to modify the return value!");
+                return targetFunc;
+        }
+
+        switch (targetFunc.expr.e) {
+            case Expr.EBlock(targetExprs):
+                var exprFound = false;
+                var totalIfCount = 0;
+                var matchingIfCount = 0;
+
+                for (i in 0...targetExprs.length) {
+                    switch (targetExprs[i].e) {
+                        case Expr.EIf(c, e1, e2):
+                            var matchesTarget = true;
+                            if (target != null) matchesTarget = matchesTargetCondition(c, target);
+
+                            if (matchesTarget) {
+                                var shouldModify = true;
+                                if (ordinal != null) shouldModify = (matchingIfCount == ordinal);
+
+                                if (shouldModify) {
+                                    var oldExpr = targetExprs[i].e;
+                                    var wrappedCondE = wrapExpr(oldExpr, newCall, sourceFuncName, target, ordinal);
+                                    targetExprs[i].e = wrappedCondE;
+                                    exprFound = true;
+
+                                    trace("Modified matching if statement #" + matchingIfCount + " (total if #" + totalIfCount + ")");
+                                }
+
+                                matchingIfCount++;
+                            }
+
+                            totalIfCount++;
+                        default: trace("No if statement found in the function, no mixins were applied!");
+                    }
+                }
+
+            default: trace("Target function is NOT an EBlock!");
+        }
+
+        return targetFunc;
+    }
+
+    public static function matchesTargetCondition(condition:Expr, target:String):Bool {
+        return switch (condition.e) {
+            case Expr.EIdent(name):
+                name == target;
+            default: false;
+        }
+    }
+
+    public static function wrapExpr(oldExpr:Expr, newCall:Expr, sourceFuncName:String, target:String, ordinal:Int):Expr {
+        switch (oldExpr) {
+            case Expr.EIf(expr, e1, e2):
+                switch (newCall) {
+                    case Expr.ECall(callExpr, params): params[0].e = expr.e;
+                }
+                expr.e = newCall;
+        }
+
+        return oldExpr;
+    }
+
+    public static function modifyReturnValue(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String):FunctionDecl {
         var newCall = switch (callFunc.expr.e) {
             case Expr.EBlock(expr): expr[0].e;
             default:
@@ -376,7 +454,7 @@ class PolyMixin extends ScriptedModule {
         var targetFuncs = ASTUtil.getFuncCache(targetInstance);
         var sourceFuncs = ASTUtil.getFuncCache(sourceInstance);
 
-        if (targetFuncs == null)  trace("Failed to get function from target");
+        if (targetFuncs == null) trace("Failed to get function from target");
         if (targetFuncs == null || sourceFuncs == null) {
             trace("Failed to get function caches");
             return null;

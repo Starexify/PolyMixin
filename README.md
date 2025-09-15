@@ -17,4 +17,4 @@ Think of it as *"hot-swapping"* functions at the AST level.
 ## Limitations
 Currently, there are some limitations:
 - Some transformations are applied later, because mixins may load before or after the base class (always check for PolyMixin and the original module’s availability before using it).
-- lack of testing in actual mods use cases, so behavior may be unpredictable]()
+- lack of testing in actual mods use cases, so behavior may be unpredictable

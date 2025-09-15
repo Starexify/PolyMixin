@@ -1,6 +1,7 @@
 import funkin.data.dialogue.ConversationRegistry;
 import funkin.data.dialogue.DialogueBoxRegistry;
 import funkin.data.dialogue.SpeakerRegistry;
+import funkin.data.event.SongEventRegistry;
 import funkin.data.freeplay.album.AlbumRegistry;
 import funkin.data.freeplay.player.PlayerRegistry;
 import funkin.data.freeplay.style.FreeplayStyleRegistry;
@@ -10,7 +11,7 @@ import funkin.data.stage.StageRegistry;
 import funkin.data.stickers.StickerRegistry;
 import funkin.data.story.level.LevelRegistry;
 import funkin.modding.module.ModuleHandler;
-import funkin.play.character.CharacterDataParser;
+import funkin.play.notes.notekind.NoteKindManager;
 import funkin.play.song.Song;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
@@ -76,10 +77,18 @@ class ASTUtil {
         return FreeplayStyleRegistry.instance.fetchEntry(name)._asc;
     }
 
-    public static function getScriptedCharacter(name:String) {
+    public static function getScriptedSongEvent(name:String):PolymodScriptClass {
+        return SongEventRegistry.getEvent(name)._asc;
+    }
+
+    public static function getScriptedNoteKind(name:String):PolymodScriptClass {
+        return NoteKindManager.getNoteKind(name)._asc;
+    }
+
+    /*public static function getScriptedCharacter(name:String) {
         if (CharacterDataParser.characterScriptedClass.get(name) == null) return null;
         else return CharacterDataParser.fetchCharacter(name)._asc;
-    }
+    }*/
 }
 
 typedef FieldCache = {

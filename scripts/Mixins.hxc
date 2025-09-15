@@ -1,6 +1,7 @@
 import funkin.data.dialogue.ConversationRegistry;
 import funkin.data.dialogue.DialogueBoxRegistry;
 import funkin.data.dialogue.SpeakerRegistry;
+import funkin.data.event.SongEventRegistry;
 import funkin.data.freeplay.album.AlbumRegistry;
 import funkin.data.freeplay.player.PlayerRegistry;
 import funkin.data.freeplay.style.FreeplayStyleRegistry;
@@ -11,6 +12,7 @@ import funkin.data.stickers.StickerRegistry;
 import funkin.data.story.level.LevelRegistry;
 import funkin.modding.module.ModuleHandler;
 import funkin.modding.module.ScriptedModule;
+import funkin.play.notes.notekind.NoteKindManager;
 import funkin.play.song.Song.SongParams;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
@@ -109,6 +111,14 @@ class Mixins extends ScriptedModule {
             cls = FreeplayStyleRegistry.instance.fetchEntry(name)._asc;
         } catch (e:Dynamic) {}
 
+        if (cls == null) try {
+            cls = SongEventRegistry.getEvent(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = NoteKindManager.getNoteKind(name)._asc;
+        } catch (e:Dynamic) {}
+
         if (cls == null) {
             trace("No scripted module/song/level/stage found for: " + name);
             return null;
@@ -133,6 +143,8 @@ class Mixins extends ScriptedModule {
             case ":StageMixin": MixinKind.StageMixin;
             case ":StickerMixin": MixinKind.StickerMixin;
             case ":FreeplayStyleMixin": MixinKind.FreeplayStyleMixin;
+            case ":SongEventMixin": MixinKind.SongEventMixin;
+            case ":NoteKindMixin": MixinKind.NoteKindMixin;
         };
     }
 }
@@ -150,6 +162,8 @@ enum MixinKind {
     StageMixin;
     StickerMixin;
     FreeplayStyleMixin;
+    SongEventMixin;
+    NoteKindMixin;
 }
 
 typedef MixinParam = {targets:Array<String>, kind:MixinKind}

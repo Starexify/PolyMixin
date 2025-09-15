@@ -79,6 +79,14 @@ class MixinAnnotationProcessor {
         return applyMixins(source, ASTUtil.getScriptedFreeplayStyle(id));
     }
 
+    public static function applySongEventMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedSongEvent(id));
+    }
+
+    public static function applyNoteKindMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedNoteKind(id));
+    }
+
     // WHY THE HELL IS THIS NOT WORKING AND IT GETS REPLACED IF YOU FETCH THE CHARACTER AGAIN
 /*    public static function applyCharacterMixin(source:Dynamic, target:String) {
         if (ASTUtil.getScriptedCharacter(target) == null) return false;

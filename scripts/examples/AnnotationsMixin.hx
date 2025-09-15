@@ -23,6 +23,14 @@ class AnnotationsMixin extends ScriptedModule {
         testReturn(original);
     }
 
+    @:ModifyExpression(method = "testFour", call = "testExprCall", target = "true", ordinal = 1)
+    function testExpr(original:Bool) {
+        return original && false;
+    }
+
+    function testExprCall(original:Bool) {
+        testExpr(original);
+    }
 
     @:InjectFunction
     function newTest() {

@@ -6,6 +6,7 @@ class Annotations extends ScriptedModule {
         test();
         testTwo();
         testThree();
+        testFour();
         //newTest();
     }
 
@@ -32,5 +33,12 @@ class Annotations extends ScriptedModule {
 
     public function testThree() {
         return 20;
+    }
+
+    public function testFour() {
+        if (true) trace(true);
+        if (false) trace(false);
+        if (true) trace("true x2");
+        if (true) trace("true x3");
     }
 }

@@ -2,6 +2,7 @@ import funkin.modding.module.ScriptedModule;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
 import Lambda;
+import Std;
 
 /**
  * Utility module providing methods and functions for injection, overwriting or modifying
@@ -21,7 +22,6 @@ class PolyMixin extends ScriptedModule {
     }
 
     // MARK: - Public API Methods
-
     public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, at:At, ?target:String, ?ordinal:Int):Bool {
         at = at ?? At.RETURN;
 
@@ -78,7 +78,6 @@ class PolyMixin extends ScriptedModule {
     }
 
     // MARK: - Core Injection Logic
-
     public static function modifyExprValue(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String, ?target:String, ?ordinal:Int):FunctionDecl {
         /*      if (target == "" || target == null) {
             trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
@@ -321,8 +320,8 @@ class PolyMixin extends ScriptedModule {
             trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
             return targetFunc;
         }
-        if (shift == null) shift = Shift.BEFORE;
-        if (ordinal == null) ordinal = 0;
+        shift = shift ?? Shift.BEFORE;
+        ordinal = ordinal ?? 0;
 
         var sourceExprs = extractSourceExpressions(sourceFunc);
         if (sourceExprs == null) return targetFunc;
@@ -330,10 +329,9 @@ class PolyMixin extends ScriptedModule {
         switch (targetFunc.expr.e) {
             case Expr.EBlock(targetExprs):
                 var matchCount = 0;
-                var i = 0;
-                var injectionPerformed = false;
+                var targetIndex = -1;
 
-                while (i < targetExprs.length) {
+                for (i in 0...targetExprs.length) {
                     switch (targetExprs[i].e) {
                         case Expr.ECall(expr, params):
                             var methodName = switch (expr.e) {
@@ -342,43 +340,32 @@ class PolyMixin extends ScriptedModule {
                             }
 
                             if (methodName == target) {
-                                // Check if this matches our ordinal requirement
-                                if (ordinal == -1 || matchCount == ordinal) {
-                                    trace("Target method matched at ordinal " + matchCount + "! Injecting " + shift + " call to: " + target);
+                                //trace("Found target '" + target + "' at index " + i + " (match #" + matchCount + ")");
 
-                                    var insertIndex = (shift == Shift.BEFORE) ? i : i + 1;
-
-                                    for (j in 0...sourceExprs.length)
-                                        targetExprs.insert(insertIndex + j, sourceExprs[j]);
-
-                                    i += sourceExprs.length + 1;
-                                    injectionPerformed = true;
-
-                                    // If targeting specific ordinal, we're done after injection
-                                    if (ordinal != -1) break;
-                                } else {
-                                    i++;
-                                }
-
+                                if (ordinal == -1 || matchCount == ordinal) targetIndex = i;
                                 matchCount++;
-                            } else {
-                                i++;
                             }
                         default:
-                            i++;
                     }
                 }
 
-                if (ordinal != -1 && !injectionPerformed) {
-                    trace("Error: Requested ordinal " + ordinal + " but only found " + matchCount + " occurrences of '" + target + "'");
+                if (targetIndex == -1) {
+                    trace("Error: Could not find target '" + target + "' at ordinal " + ordinal);
+                    return targetFunc;
                 }
+
+                // Perform the injection
+                var insertIndex = (Std.string(shift) == "Shift.BEFORE") ? targetIndex : targetIndex + 1;
+
+                for (j in 0...sourceExprs.length) targetExprs.insert(insertIndex + j, sourceExprs[j]);
+
             default: trace("Target function is NOT an EBlock!");
         }
 
         return targetFunc;
     }
 
-
+    // MARK: - Utility Methods
     public static function extractSourceExpressions(sourceFunc:FunctionDecl):Null<Array<Expr>> {
         return switch (sourceFunc.expr.e) {
             case Expr.EBlock(exprs): exprs;

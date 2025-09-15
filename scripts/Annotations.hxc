@@ -18,9 +18,7 @@ class Annotations extends ScriptedModule {
         trace("test() called");
     }
 
-    public function testTwo() {
-        trace("test() called");
-        doSmth();
+/*    public function testTwo() {
         if (false) {
             return trace("Test Return false");
         } else {
@@ -31,10 +29,14 @@ class Annotations extends ScriptedModule {
         if (true) {
             return trace("Test Return false");
         }
+        return trace("Test Return");
+    }*/
+    public function testTwo() {
+        trace("test() called");
+        doSmth();
         doSmth();
         doSmth();
         trace("test() called x2");
-        return trace("Test Return");
     }
 
     function doSmth() {

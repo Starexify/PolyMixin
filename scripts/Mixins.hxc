@@ -120,7 +120,7 @@ class Mixins extends ScriptedModule {
         } catch (e:Dynamic) {}
 
         if (cls == null) {
-            trace("No scripted module/song/level/stage found for: " + name);
+            trace("No scripted class found for: " + name);
             return null;
         }
 

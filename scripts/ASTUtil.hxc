@@ -29,6 +29,7 @@ class ASTUtil {
         };
     }
 
+    // PolymodClass Getters
     public static function getScriptedModule(name:String):PolymodScriptClass {
         return ModuleHandler.getModule(name)._asc;
     }

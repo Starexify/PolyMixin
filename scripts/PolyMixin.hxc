@@ -10,7 +10,9 @@ import Lambda;
 class PolyMixin extends ScriptedModule {
     private static var _instance:PolyMixin;
     public static var instance(get, set):PolyMixin;
+
     static function set_instance(value:PolyMixin):PolyMixin { return _instance = value; }
+
     static function get_instance():PolyMixin { return _instance; }
 
     function new() {
@@ -200,7 +202,7 @@ class PolyMixin extends ScriptedModule {
 
         var newFunc = switch (at) {
             case At.INVOKE: injectAtTarget(validation.targetFunc, validation.sourceFunc, target, ordinal, shift);
-            default: inject(validation.targetFunc, validation.sourceFunc, at);
+            default: inject(validation.targetFunc, validation.sourceFunc, at, ordinal);
         }
 
         validation.targetFuncs.set(targetFuncName, newFunc);
@@ -211,15 +213,9 @@ class PolyMixin extends ScriptedModule {
         return injectByName(targetInstance, targetFuncName, sourceInstance, sourceFuncName, PolyMixin.instance.atFromStr(at), target, ordinal, PolyMixin.instance.shiftFromStr(shift));
     }
 
-    public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At):FunctionDecl {
-        var sourceExpr:Expr.EBlock = sourceFunc.expr.e;
-        var sourceExprs:Array<Expr> = [];
-
-        switch (sourceExpr) {
-            case Expr.EBlock(exprs):
-                sourceExprs = exprs;
-            default: trace("Source function is not an EBlock, please provide an actual function!");
-        }
+    public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At, ?ordinal:Int):FunctionDecl {
+        var sourceExprs = extractSourceExpressions(sourceFunc);
+        if (sourceExprs == null) return targetFunc;
 
         switch (targetFunc.expr.e) {
             case Expr.EBlock(targetExprs):
@@ -227,13 +223,7 @@ class PolyMixin extends ScriptedModule {
                     case At.HEAD:
                         for (i in 0...sourceExprs.length) targetExprs.insert(i, sourceExprs[i]);
                     case At.RETURN:
-                        for (i in 0...targetExprs.length) {
-                            switch (targetExprs[i].e) {
-                                case Expr.EReturn(returnExpr):
-                                    trace("Found return at index " + i + ", injecting code before it");
-                                    for (j in 0...sourceExprs.length) targetExprs.insert(i + j, sourceExprs[j]);
-                            }
-                        }
+                        injectAtReturn(targetExprs, sourceExprs, ordinal);
                     case At.TAIL:
                         for (expr in sourceExprs) targetExprs.push(expr);
                 }
@@ -244,6 +234,85 @@ class PolyMixin extends ScriptedModule {
         return targetFunc;
     }
 
+    public static function injectAtReturn(targetExprs:Array<Expr>, sourceExprs:Array<Expr>, ordinal:Int) {
+        if (ordinal == null) ordinal = -1;
+
+        var i = 0;
+        var returnCount = 0;
+        while (i < targetExprs.length) {
+            switch (targetExprs[i].e) {
+                case Expr.EReturn(_):
+                    if (ordinal == -1 || ordinal == returnCount) {
+                        trace("Found return #" + returnCount + " at index " + i + ", injecting code before it");
+                        for (j in 0...sourceExprs.length) targetExprs.insert(i + j, sourceExprs[j]);
+                        i += sourceExprs.length;
+                    }
+                    returnCount++;
+                    i++;
+
+                case Expr.EIf(condition, thenExpr, elseExpr):
+                    trace("Found if at index " + i, ", trying to inject code inside it");
+
+                    switch (thenExpr.e) {
+                        case Expr.EBlock(thenExprs):
+                            returnCount = processReturns(thenExprs, sourceExprs, ordinal, returnCount);
+                        default:
+                    }
+
+                    if (elseExpr != null) {
+                        switch (elseExpr.e) {
+                            case Expr.EBlock(elseExprs):
+                                returnCount = processReturns(elseExprs, sourceExprs, ordinal, returnCount);
+                            default:
+                        }
+                    }
+
+                    i++;
+                default:
+                    i++;
+            }
+        }
+        trace(returnCount);
+    }
+
+    public static function processReturns(blockExprs:Array<Expr>, sourceExprs:Array<Expr>, ordinal:Int, returnCountRef:Int) {
+        var i = 0;
+        var currentReturnCount = returnCountRef;
+
+        while (i < blockExprs.length) {
+            switch (blockExprs[i].e) {
+                case Expr.EReturn(_):
+                    if (ordinal == -1 || ordinal == currentReturnCount) {
+                        trace("Found return #" + currentReturnCount + " in block at index " + i);
+                        for (j in 0...sourceExprs.length) blockExprs.insert(i + j, sourceExprs[j]);
+                        i += sourceExprs.length;
+                    }
+                    currentReturnCount++;
+                    i++;
+
+                case Expr.EIf(_, thenExpr, elseExpr):
+                    switch (thenExpr.e) {
+                        case Expr.EBlock(thenExprs):
+                            currentReturnCount = processReturns(thenExprs, sourceExprs, ordinal, currentReturnCount);
+                        default:
+                    }
+                    if (elseExpr != null) {
+                        switch (elseExpr.e) {
+                            case Expr.EBlock(elseExprs):
+                                currentReturnCount = processReturns(elseExprs, sourceExprs, ordinal, currentReturnCount);
+                            default:
+                        }
+                    }
+                    i++;
+
+                default:
+                    i++;
+            }
+        }
+
+        return currentReturnCount;
+    }
+
     public static function injectAtTarget(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, target:String, ordinal:Int, shift:Shift):FunctionDecl {
         if (target == "" || target == null) {
             trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
@@ -252,14 +321,8 @@ class PolyMixin extends ScriptedModule {
         if (shift == null) shift = Shift.BEFORE;
         if (ordinal == null) ordinal = 0;
 
-        var sourceExpr:Expr.EBlock = sourceFunc.expr.e;
-        var sourceExprs:Array<Expr> = [];
-
-        switch (sourceExpr) {
-            case Expr.EBlock(exprs):
-                sourceExprs = exprs;
-            default: trace("Source function is an EBlock, please provide an actual function!");
-        }
+        var sourceExprs = extractSourceExpressions(sourceFunc);
+        if (sourceExprs == null) return targetFunc;
 
         switch (targetFunc.expr.e) {
             case Expr.EBlock(targetExprs):
@@ -321,6 +384,15 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
+    public static function extractSourceExpressions(sourceFunc:FunctionDecl):Null<Array<Expr>> {
+        return switch (sourceFunc.expr.e) {
+            case Expr.EBlock(exprs): exprs;
+            default:
+                trace("Source function is not an EBlock, please provide an actual function!");
+                null;
+        }
+    }
+
     public function shiftFromStr(str:String):Shift {
         return switch (str) {
             case "BEFORE": Shift.BEFORE;
@@ -366,8 +438,6 @@ class PolyMixin extends ScriptedModule {
     }
 }
 
-typedef ValidationDef = {targetFuncs:Map<String, FunctionDecl>, sourceFuncs:Map<String, FunctionDecl>, targetFunc:FunctionDecl, sourceFunc:FunctionDecl}
-
 enum At {
     HEAD; // Inject at beginning
     TAIL; // Inject at end
@@ -379,3 +449,5 @@ enum Shift {
     BEFORE;
     AFTER;
 }
+
+typedef ValidationDef = {targetFuncs:Map<String, FunctionDecl>, sourceFuncs:Map<String, FunctionDecl>, targetFunc:FunctionDecl, sourceFunc:FunctionDecl}

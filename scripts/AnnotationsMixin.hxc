@@ -1,0 +1,53 @@
+import funkin.modding.module.ScriptedModule;
+import funkin.modding.events.ScriptEvent.UpdateScriptEvent;
+import funkin.modding.module.ModuleHandler;
+
+@:Mixin(Annotations)
+class AnnotationsMixin extends ScriptedModule {
+    var injected:Bool = false;
+
+    override public function onUpdate(event:UpdateScriptEvent) {
+        if (injected) return;
+        if (injected) trace("Injection succeeded!");
+        injected = MixinAnnotationProcessor.applyMixins(this, ModuleHandler.getModule("Annotations")._asc);
+    }
+
+    @:Overwrite(method = "test")
+    function testOverwrite() {
+        trace("Overwrote test()");
+    }
+
+    @:Inject(method = "testTwo", at = "RETURN", ordinal = 1)
+    function testInject() {
+        trace("Injected into testTwo()");
+    }
+
+/*    @:Inject(method = "testTwo", at = "INVOKE", target = "doSmth", ordinal = 2)
+    function testInject() {
+        trace("Injected into testTwo()");
+    }*/
+
+
+    @:ModifyReturn(method = "testThree", call = testReturnCall)
+    function testReturn(original:Int) {
+        return trace(original + 10);
+    }
+
+    function testReturnCall(original:Int) {
+        testReturn(original);
+    }
+
+    @:ModifyExpression(method = "testFour", call = testExprCall, target = true, ordinal = 1)
+    function testExpr(original:Bool) {
+        return original && false;
+    }
+
+    function testExprCall(original:Bool) {
+        testExpr(original);
+    }
+
+    @:InjectFunction
+    function newTest() {
+        trace("New Test injected into class");
+    }
+}

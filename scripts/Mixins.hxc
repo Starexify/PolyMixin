@@ -10,58 +10,140 @@ import funkin.data.song.SongRegistry;
 import funkin.data.stage.StageRegistry;
 import funkin.data.stickers.StickerRegistry;
 import funkin.data.story.level.LevelRegistry;
+import funkin.modding.events.ScriptEvent;
+import funkin.modding.ModStore;
 import funkin.modding.module.ModuleHandler;
 import funkin.modding.module.ScriptedModule;
 import funkin.play.notes.notekind.NoteKindManager;
 import funkin.play.song.Song.SongParams;
+import funkin.util.FileUtilSandboxed;
 import funkin.util.ReflectUtil;
+import haxe.ds.ObjectMap;
+import haxe.ds.StringMap;
 import hscript.Expr;
 import polymod.hscript._internal.PolymodClassDeclEx;
 import polymod.hscript._internal.PolymodScriptClass;
 
 class Mixins extends ScriptedModule {
-    private static var _instance:Mixins;
-    public static var instance(get, set):Mixins;
-
-    static function set_instance(value:Mixins):Mixins { return _instance = value; }
-
-    static function get_instance():Mixins { return _instance; }
+    var injected:Bool = false;
+    var loadedConfigs:Bool = false;
+    static var configs:ObjectMap<String, Dynamic> = new ObjectMap();
+    static var loadedMixins:StringMap<MixinParam> = new StringMap();
 
     public function new() {
         super("Mixins");
-        Mixins.instance = this;
-        //trace(retrieveParams("AnnotationsMixin"));
+
+        new ASTUtil();
+        if (!loadedConfigs) loadConfigs();
     }
 
-    // Not working to give config manually yet
-    public function addConfig(path:String) {
-        //trace(path);
+    override public function onCreate(event:ScriptEvent) {
+        Mixins.addConfig("PolyMixin");
+        if (!loadedConfigs) loadConfigs();
     }
 
-    public static function addConfigStatic(path:String) {
-        //trace(path);
+    override public function onUpdate(event:UpdateScriptEvent) {
+        if (injected || loadedMixins == null) return;
+        for (className in loadedMixins.keys()) {
+            var mixin = loadedMixins.get(className);
+            for (target in mixin.targets) {
+                injected = Mixins.applyMixinsForKind(className, target, mixin);
+            }
+        }
     }
 
-    function retrieveParams(className:String, ?params:SongParams):Null<MixinParam> {
+    static function applyMixinsForKind(className:String, target:String, mixin:MixinParam):Bool {
+        trace("Trying to apply mixins for script " + target + " from mixin class " + className + " with params " + mixin);
+        if (mixin == null || className == null || target == null) return false;
+
+        var source = ModuleHandler.getModule(className)._asc;
+        if (source == null) return false;
+
+        switch (mixin.kind) {
+            case MixinKind.Mixin: MixinAnnotationProcessor.applyModuleMixins(source, target);
+            case MixinKind.SongMixin: MixinAnnotationProcessor.applySongMixins(source, target, { variation: mixin.variation });
+            case MixinKind.LevelMixin: MixinAnnotationProcessor.applyLevelMixins(source, target);
+            case MixinKind.NoteStyleMixin: MixinAnnotationProcessor.applyNoteStyleMixins(source, target);
+            case MixinKind.PlayerMixin: MixinAnnotationProcessor.applyPlayerMixins(source, target);
+            case MixinKind.ConversationMixin: MixinAnnotationProcessor.applyConversationMixins(source, target);
+            case MixinKind.DialogueBoxMixin: MixinAnnotationProcessor.applyDialogueMixins(source, target);
+            case MixinKind.SpeakerMixin: MixinAnnotationProcessor.applySpeakerMixins(source, target);
+            case MixinKind.AlbumMixin: MixinAnnotationProcessor.applyAlbumMixins(source, target);
+            case MixinKind.StageMixin: MixinAnnotationProcessor.applyStageMixins(source, target);
+            case MixinKind.StickerMixin: MixinAnnotationProcessor.applyStickerMixins(source, target);
+            case MixinKind.FreeplayStyleMixin: MixinAnnotationProcessor.applyFreeplayStyleMixins(source, target);
+            case MixinKind.SongEventMixin: MixinAnnotationProcessor.applySongEventMixins(source, target);
+            case MixinKind.NoteKindMixin: MixinAnnotationProcessor.applyNoteKindMixins(source, target);
+        }
+
+        trace("Succsessfully applied mixins for script: " + target + " from mixin class " + className + " with params " + mixin);
+        return true;
+    }
+
+    public static function addConfig(path:String) {
+        configs.set(path, "mods/" + path + "/_polymixin_config.json");
+        ModStore.register("polyMixinCfgs", configs);
+    }
+
+    public function loadConfigs() {
+        if (ModStore.get("polyMixinCfgs") == null) return;
+        configs = ModStore.get("polyMixinCfgs");
+        loadedMixins = new StringMap();
+
+        for (path in configs) {
+            if (!FileUtilSandboxed.fileExists(path)) return;
+            var config:MixinConfig = FileUtilSandboxed.readJSONFromPath(path);
+            if (config == null || config.mixins == null || config.mixins.length == 0) return;
+
+            for (entry in config.mixins) {
+                var mixinParam:Null<MixinParam> = null;
+
+                if (ReflectUtil.getFieldsOf(entry).length > 0) {
+                    mixinParam = retrieveParams(entry.className, entry.params, entry.kind);
+                    if (mixinParam != null) loadedMixins.set(entry.className, mixinParam);
+                } else {
+                    mixinParam = retrieveParams(entry);
+                    if (mixinParam != null) loadedMixins.set(entry, mixinParam);
+                }
+                if (mixinParam == null) trace("Failed to retrieve parameters from mixin class: " + entry + " with source path " + path + ". Please provide an actual mixin class.");
+            }
+        }
+
+        loadedConfigs = true;
+    }
+
+    function retrieveParams(className:String, ?params:SongParams, ?kind:String):Null<MixinParam> {
         var meta = getMetadata(className, params);
         if (meta == null || meta.name == null) return null;
 
-        var result:MixinParam = { targets: [], kind: kindFromStr(meta.name) };
+        var mixinKind:MixinKind = kindFromStr(":" + kind) ?? kindFromStr(meta.name);
+
+        var result:MixinParam = { targets: [], kind: mixinKind};
         if (result.kind == null) return null;
 
         for (param in meta.params) {
             switch (param.e) {
-                case Expr.EIdent(id):
-                    result.targets.push(id);
+                case Expr.EIdent(id): result.targets.push(id);
+                case Expr.EBinop(op, e1, e2):
+                    switch (e2.e) {
+                        case Expr.EConst(c):
+                            switch (c) {
+                                case Const.CString(v): {
+                                    result.variation = v;
+                                }
+                            }
+                    }
                 default: trace("Unhandled param in class " + className + ": " + param.e);
             }
         }
+        if (params != null && result.variation == null) result.variation = params.variation;
 
         return result;
     }
 
     function getMetadata(name:String, ?songParams:SongParams):Metadata {
         var cls:PolymodScriptClass = null;
+        var _c:PolymodClassDeclEx = null;
 
         try {
             cls = ModuleHandler.getModule(name)._asc;
@@ -120,11 +202,11 @@ class Mixins extends ScriptedModule {
         } catch (e:Dynamic) {}
 
         if (cls == null) {
-            trace("No scripted class found for: " + name);
+            //trace("No scripted class found for: " + name);
             return null;
         }
 
-        var _c:PolymodClassDeclEx = ReflectUtil.getField(cls, "_c");
+        _c = ReflectUtil.getField(cls, "_c");
         return _c.meta[0];
     }
 
@@ -166,4 +248,7 @@ enum MixinKind {
     NoteKindMixin;
 }
 
-typedef MixinParam = {targets:Array<String>, kind:MixinKind}
+typedef MixinParam = {targets:Array<String>, kind:MixinKind, variation:String}
+
+typedef MixinConfig = {mixins:Array<MixinConfigKinds>}
+typedef MixinConfigKinds = {className:String, kind:String, params:SongParams}

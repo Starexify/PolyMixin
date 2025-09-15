@@ -18,6 +18,18 @@ import hscript.Expr;
 import polymod.hscript._internal.PolymodScriptClass;
 
 class ASTUtil {
+    // instancing bs because for some reason polymod forgets values if they're static functions and hot reloading from Funkin
+    static var _instance:ASTUtil;
+    public static var instance(get, set):ASTUtil;
+    static function set_instance(value:ASTUtil):ASTUtil { return _instance = value; }
+    static function get_instance():ASTUtil {
+        return _instance;
+    }
+
+    function new() {
+        ASTUtil.instance = this;
+    }
+
     public static function getFuncCache(instance:Dynamic):Map<String, FunctionDecl> {
         return ReflectUtil.getField(instance, "_cachedFunctionDecls");
     }
@@ -30,7 +42,9 @@ class ASTUtil {
     }
 
     // PolymodClass Getters
-    public static function getScriptedModule(name:String):PolymodScriptClass {
+    public function getScriptedModule(name:String):PolymodScriptClass {
+        trace(name);
+        if (ModuleHandler.getModule(name) == null) return null;
         return ModuleHandler.getModule(name)._asc;
     }
 

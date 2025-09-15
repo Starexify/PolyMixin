@@ -9,11 +9,9 @@ import Std;
  * `PolymodScriptedClass` instances dynamically by manipulating their AST.
  */
 class PolyMixin extends ScriptedModule {
-    private static var _instance:PolyMixin;
+    static var _instance:PolyMixin;
     public static var instance(get, set):PolyMixin;
-
     static function set_instance(value:PolyMixin):PolyMixin { return _instance = value; }
-
     static function get_instance():PolyMixin { return _instance; }
 
     function new() {

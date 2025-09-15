@@ -32,7 +32,7 @@ class MixinAnnotationProcessor {
     }
 
     public static function applyModuleMixins(source:Dynamic, className:String) {
-        return applyMixins(source, ASTUtil.getScriptedModule(className));
+        return applyMixins(source, ASTUtil.instance.getScriptedModule(className));
     }
 
     public static function applySongMixins(source:Dynamic, id:String, ?params:SongParams) {

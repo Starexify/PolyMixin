@@ -2,16 +2,16 @@ import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
 
 class Annotations extends ScriptedModule {
+    public function new() {
+        super("Annotations");
+    }
+
     override public function onStateChangeBegin(event:StateChangeScriptEvent) {
         test();
         testTwo();
         testThree();
         testFour();
         //newTest();
-    }
-
-    public function new() {
-        super("Annotations");
     }
 
     public function test() {

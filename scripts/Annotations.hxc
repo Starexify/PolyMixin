@@ -21,10 +21,10 @@ class Annotations extends ScriptedModule {
     public function testTwo() {
         trace("test() called");
         doSmth();
-        if (true) {
+        if (false) {
             return trace("Test Return false");
         } else {
-            if (false) {
+            if (true) {
                 return trace("Test Return true");
             }
         }

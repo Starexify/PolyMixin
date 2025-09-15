@@ -39,7 +39,7 @@ class AnnotationsMixin extends ScriptedModule {
 
     @:ModifyExpression(method = "testFour", call = testExprCall, target = true, ordinal = 1)
     function testExpr(original:Bool) {
-        return original && false;
+        return false;
     }
 
     function testExprCall(original:Bool) {

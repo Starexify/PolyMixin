@@ -20,8 +20,10 @@ class PolyMixin extends ScriptedModule {
         PolyMixin.instance = this;
     }
 
+    // MARK: - Public API Methods
+
     public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, at:At, ?target:String, ?ordinal:Int):Bool {
-        if (at == null) at = At.RETURN;
+        at = at ?? At.RETURN;
 
         var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
         if (validation == null) return false;
@@ -48,6 +50,35 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
+    public static function injectByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:At, ?target:String, ?ordinal:Int, ?shift:Shift):Bool {
+        at = at ?? At.HEAD;
+
+        var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
+        if (validation == null) return false;
+
+        var newFunc = switch (at) {
+            case At.INVOKE: injectAtTarget(validation.targetFunc, validation.sourceFunc, target, ordinal, shift);
+            default: inject(validation.targetFunc, validation.sourceFunc, at, ordinal);
+        }
+
+        validation.targetFuncs.set(targetFuncName, newFunc);
+        return true;
+    }
+
+    public static function injectByNameStr(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:String, ?target:String, ?ordinal:Int, ?shift:String):Bool {
+        return injectByName(targetInstance, targetFuncName, sourceInstance, sourceFuncName, instance.atFromStr(at), target, ordinal, instance.shiftFromStr(shift));
+    }
+
+    public static function overwrite(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String):Bool {
+        var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
+        if (validation == null) return false;
+
+        validation.targetFuncs.set(targetFuncName, validation.sourceFunc);
+        return true;
+    }
+
+    // MARK: - Core Injection Logic
+
     public static function modifyExprValue(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String, ?target:String, ?ordinal:Int):FunctionDecl {
         /*      if (target == "" || target == null) {
             trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
@@ -72,7 +103,12 @@ class PolyMixin extends ScriptedModule {
                     switch (targetExprs[i].e) {
                         case Expr.EIf(c, e1, e2):
                             var matchesTarget = true;
-                            if (target != null) matchesTarget = matchesTargetCondition(c, target);
+                            if (target != null)
+                                matchesTarget = switch (c.e) {
+                                    case Expr.EIdent(name):
+                                        name == target;
+                                    default: false;
+                                }
 
                             if (matchesTarget) {
                                 var shouldModify = true;
@@ -84,7 +120,7 @@ class PolyMixin extends ScriptedModule {
                                     targetExprs[i].e = wrappedCondE;
                                     exprFound = true;
 
-                                    trace("Modified matching if statement #" + matchingIfCount + " (total if #" + totalIfCount + ")");
+                                    //trace("Modified matching if statement #" + matchingIfCount + " (total if #" + totalIfCount + ")");
                                 }
 
                                 matchingIfCount++;
@@ -99,14 +135,6 @@ class PolyMixin extends ScriptedModule {
         }
 
         return targetFunc;
-    }
-
-    public static function matchesTargetCondition(condition:Expr, target:String):Bool {
-        return switch (condition.e) {
-            case Expr.EIdent(name):
-                name == target;
-            default: false;
-        }
     }
 
     public static function wrapExpr(oldExpr:Expr, newCall:Expr, sourceFuncName:String, target:String, ordinal:Int):Expr {
@@ -195,24 +223,6 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
-    public static function injectByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:At, ?target:String, ?ordinal:Int, ?shift:Shift):Bool {
-        if (at == null) at = At.HEAD;
-        var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
-        if (validation == null) return false;
-
-        var newFunc = switch (at) {
-            case At.INVOKE: injectAtTarget(validation.targetFunc, validation.sourceFunc, target, ordinal, shift);
-            default: inject(validation.targetFunc, validation.sourceFunc, at, ordinal);
-        }
-
-        validation.targetFuncs.set(targetFuncName, newFunc);
-        return true;
-    }
-
-    public static function injectByNameStr(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:String, ?target:String, ?ordinal:Int, ?shift:String):Bool {
-        return injectByName(targetInstance, targetFuncName, sourceInstance, sourceFuncName, PolyMixin.instance.atFromStr(at), target, ordinal, PolyMixin.instance.shiftFromStr(shift));
-    }
-
     public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At, ?ordinal:Int):FunctionDecl {
         var sourceExprs = extractSourceExpressions(sourceFunc);
         if (sourceExprs == null) return targetFunc;
@@ -220,15 +230,11 @@ class PolyMixin extends ScriptedModule {
         switch (targetFunc.expr.e) {
             case Expr.EBlock(targetExprs):
                 switch (at) {
-                    case At.HEAD:
-                        for (i in 0...sourceExprs.length) targetExprs.insert(i, sourceExprs[i]);
-                    case At.RETURN:
-                        injectAtReturn(targetExprs, sourceExprs, ordinal);
-                    case At.TAIL:
-                        for (expr in sourceExprs) targetExprs.push(expr);
+                    case At.HEAD: for (i in 0...sourceExprs.length) targetExprs.insert(i, sourceExprs[i]);
+                    case At.RETURN: injectAtReturn(targetExprs, sourceExprs, ordinal);
+                    case At.TAIL: for (expr in sourceExprs) targetExprs.push(expr);
                 }
-            default:
-                trace("Target function is NOT an EBlock!");
+            default: trace("Target function is NOT an EBlock!");
         }
 
         return targetFunc;
@@ -243,7 +249,7 @@ class PolyMixin extends ScriptedModule {
             switch (targetExprs[i].e) {
                 case Expr.EReturn(_):
                     if (ordinal == -1 || ordinal == returnCount) {
-                        trace("Found return #" + returnCount + " at index " + i + ", injecting code before it");
+                        //trace("Found return #" + returnCount + " at index " + i + ", injecting code before it");
                         for (j in 0...sourceExprs.length) targetExprs.insert(i + j, sourceExprs[j]);
                         i += sourceExprs.length;
                     }
@@ -251,7 +257,7 @@ class PolyMixin extends ScriptedModule {
                     i++;
 
                 case Expr.EIf(condition, thenExpr, elseExpr):
-                    trace("Found if at index " + i, ", trying to inject code inside it");
+                    //trace("Found if at index " + i + ", trying to inject code inside it");
 
                     switch (thenExpr.e) {
                         case Expr.EBlock(thenExprs):
@@ -268,11 +274,9 @@ class PolyMixin extends ScriptedModule {
                     }
 
                     i++;
-                default:
-                    i++;
+                default: i++;
             }
         }
-        trace(returnCount);
     }
 
     public static function processReturns(blockExprs:Array<Expr>, sourceExprs:Array<Expr>, ordinal:Int, returnCountRef:Int) {
@@ -283,7 +287,7 @@ class PolyMixin extends ScriptedModule {
             switch (blockExprs[i].e) {
                 case Expr.EReturn(_):
                     if (ordinal == -1 || ordinal == currentReturnCount) {
-                        trace("Found return #" + currentReturnCount + " in block at index " + i);
+                        //trace("Found return #" + currentReturnCount + " in block at index " + i);
                         for (j in 0...sourceExprs.length) blockExprs.insert(i + j, sourceExprs[j]);
                         i += sourceExprs.length;
                     }
@@ -305,8 +309,7 @@ class PolyMixin extends ScriptedModule {
                     }
                     i++;
 
-                default:
-                    i++;
+                default: i++;
             }
         }
 
@@ -375,14 +378,6 @@ class PolyMixin extends ScriptedModule {
         return targetFunc;
     }
 
-    public static function overwrite(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String):Bool {
-        var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
-        if (validation == null) return false;
-
-        validation.targetFuncs.set(targetFuncName, validation.sourceFunc);
-
-        return true;
-    }
 
     public static function extractSourceExpressions(sourceFunc:FunctionDecl):Null<Array<Expr>> {
         return switch (sourceFunc.expr.e) {

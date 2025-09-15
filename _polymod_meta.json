@@ -1,6 +1,6 @@
 {
   "title": "PolyMixins",
-  "description": "A runtime AST manipulation library for modifying scripted modules.",
+  "description": "A runtime AST mixin framework for modifying scripted classes in V-Slice mods.",
   "contributors": [
     {
       "name": "ImVeryBad",

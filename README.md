@@ -1,12 +1,13 @@
 # PolyMixin
 
-The AST manipulation library for modifying scripted classes from other V-Slice mods.
+The runtime AST mixin **framework** for modifying scripted classes from other V-Slice mods.
+
 
 ## What is PolyMixin ?
-PolyMixin lets you manipulate the **AST** *(Abstract Syntax Tree)* of a scripted class at runtime without changing the original script of the class. 
-This allows modders to patch or extend the functionality of other mods dynamically while keeping the base script intact.
+PolyMixin is a runtime AST manipulation **framework and API** inspired by the mixin pattern used in projects like Sponge Mixin (Minecraft), that lets modders patch or extend scripted classes from other V-Slice mods without modifying their original scripts.
+Using annotations or class names, modders can inject new behavior, override functions, or add fields dynamically — similar to Mixins in the Minecraft ecosystem.
 
-Currently, modders can mixin into the following scripted classes via annotations or class name as a string:
+Currently, PolyMixin supports mixing into the following scripted classes:
 - `ScriptedModules`
 - `ScriptedSong`
 - `ScriptedLevel`
@@ -32,5 +33,5 @@ Think of it as *"hot-swapping"* functions at the AST level.
 
 ## Limitations
 Currently, there are some limitations:
-- some transformations are applied later, because mixins may load before or after the base class (meaning you should always check for PolyMixin and the original module's availability before using it)
+- Some transformations are applied later, because mixins may load before or after the base class (always check for PolyMixin and the original module’s availability before using it).
 - lack of testing in actual mods use cases, so behavior may be unpredictable

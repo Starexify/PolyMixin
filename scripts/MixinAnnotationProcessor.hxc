@@ -1,3 +1,4 @@
+import funkin.play.song.Song;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
 import polymod.hscript._internal.PolymodClassDeclEx;
@@ -30,9 +31,27 @@ class MixinAnnotationProcessor {
         return true;
     }
 
-    public static function applyMixinsStr(source:Dynamic, target:String) {
-        return applyMixins(source, ASTUtil.getScriptedClass(target));
+    public static function applyModuleMixins(source:Dynamic, className:String) {
+        return applyMixins(source, ASTUtil.getScriptedModule(className));
     }
+
+    public static function applySongMixins(source:Dynamic, id:String, ?params:SongParams) {
+        return applyMixins(source, ASTUtil.getScriptedSong(id, params));
+    }
+
+    public static function applyLevelMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedLevel(id));
+    }
+
+    public static function applyStageMixins(source:Dynamic, id:String) {
+        return applyMixins(source, ASTUtil.getScriptedStage(id));
+    }
+
+    // WHY THE HELL IS THIS NOT WORKING AND IT GETS REPLACED IF YOU FETCH THE CHARACTER AGAIN
+/*    public static function applyCharacterMixin(source:Dynamic, target:String) {
+        if (ASTUtil.getScriptedCharacter(target) == null) return false;
+        else return applyMixins(source, ASTUtil.getScriptedCharacter(target));
+    }*/
 
     /**
      * Iterates a list of fields and applies mixins based on their metadata.

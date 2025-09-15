@@ -1,0 +1,16 @@
+import funkin.modding.events.ScriptEvent;
+import funkin.modding.module.ScriptedModule;
+
+class SongTestMixin extends ScriptedModule {
+    var injected:Bool = false;
+
+    override public function onUpdate(event:UpdateScriptEvent) {
+        if (injected) return;
+        //injected = MixinAnnotationProcessor.applySongMixins(this, "bf");
+    }
+
+    @InjectFunction()
+    function test() {
+        trace("test() injected into character");
+    }
+}

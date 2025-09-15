@@ -1,4 +1,9 @@
+import funkin.data.song.SongRegistry;
+import funkin.data.stage.StageRegistry;
+import funkin.data.story.level.LevelRegistry;
 import funkin.modding.module.ModuleHandler;
+import funkin.play.character.CharacterDataParser;
+import funkin.play.song.Song;
 import funkin.util.ReflectUtil;
 import hscript.Expr;
 import polymod.hscript._internal.PolymodScriptClass;
@@ -15,8 +20,26 @@ class ASTUtil {
         };
     }
 
-    public static function getScriptedClass(name:String):PolymodScriptClass {
+    public static function getScriptedModule(name:String):PolymodScriptClass {
         return ModuleHandler.getModule(name)._asc;
+    }
+
+    public static function getScriptedSong(name:String, params:SongParams):PolymodScriptClass {
+        return SongRegistry.instance.fetchEntry(name, params)._asc;
+    }
+
+    public static function getScriptedLevel(name:String):PolymodScriptClass {
+        return LevelRegistry.instance.fetchEntry(name)._asc;
+    }
+
+    public static function getScriptedStage(name:String):PolymodScriptClass {
+        return StageRegistry.instance.fetchEntry(name)._asc;
+    }
+
+
+    public static function getScriptedCharacter(name:String) {
+        if (CharacterDataParser.characterScriptedClass.get(name) == null) return null;
+        else return CharacterDataParser.fetchCharacter(name)._asc;
     }
 }
 

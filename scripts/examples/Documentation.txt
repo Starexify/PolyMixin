@@ -1,0 +1,123 @@
+# modifyByName(targetInstance, targetFuncName, sourceInstance, sourceFuncName, callFuncName, at, target, ordinal)
+
+Modifies a target function by wrapping its return values or expressions with a call to a mixin function.
+
+This method combines function injection and value modification to enable mixins that alter or override
+specific parts of an existing function. It works by copying the mixin function into the target instance
+(via {@link injectFunction}) and then replacing the specified injection points with wrapped calls.
+
+The mixin function must provide an "empty recall" — i.e., a function that calls the designated
+`callFuncName` with a placeholder argument. This template is used to manipulate the AST and insert
+the original value as the argument.
+
+Supported injection points:
+- `At.RETURN`: Wraps all return statements with the mixin function call
+- `At.INVOKE`: Wraps specific expressions (like if conditions) with the mixin function call
+
+@param targetInstance The instance containing the target function to modify.
+@param targetFuncName The name of the function in the target instance to modify.
+@param sourceInstance The instance containing the mixin functions.
+@param sourceFuncName The name of the mixin function providing logic to inject.
+@param callFuncName The helper/empty-call function used as a template for wrapping values.
+@param at Where to inject (`At.RETURN` for return values, `At.INVOKE` for expressions).
+@param target (Optional) For `At.INVOKE`: the expression identifier to target.
+@param ordinal (Optional) For `At.INVOKE`: which occurrence of the target to modify (0-based).
+@return True if the modification succeeded, false otherwise.
+
+
+@example
+// Original target function:
+function getValue() {
+    return 5;
+}
+
+// Mixin function for return modification:
+function modifyValue(original:Int) {
+    modifyValue(); // empty recall, used as AST template
+    return original + 10;
+}
+
+// Apply return mixin:
+PolyMixin.modifyByName(TargetClass.instance, "getValue", MixinClass.instance, "modifyValue", "modifyValue", At.RETURN);
+// Result: getValue() now returns 15 instead of 5
+
+@example
+// Original target with conditional:
+function checkCondition() {
+    if (someFlag) doSomething();
+}
+
+// Mixin function for expression modification:
+function wrapCondition(original:Bool) {
+    wrapCondition(); // empty recall template
+    return original && additionalCheck();
+}
+
+// Apply expression mixin:
+PolyMixin.modifyByName(TargetClass.instance, "checkCondition", MixinClass.instance, "wrapCondition", "wrapCondition", At.INVOKE, "someFlag");
+// Result: condition becomes (someFlag && additionalCheck())
+-----------------------------------------------------------------------------
+
+# injectFunction(targetInstance, sourceInstance, sourceFuncName)
+
+Copies a function from one instance to another, effectively adding
+the source function to the target instance.
+
+This modifies both the function cache and the AST field list of the target,
+making the function behave as if it were originally declared there.
+
+@param targetInstance The instance that will receive the new function.
+@param sourceInstance The instance containing the function to copy.
+@param sourceFuncName The name of the function to copy from the source instance.
+@return True if the function was successfully copied, false otherwise.
+
+
+@example
+// Copy `helper` function from `MixinClass` into `TargetClass`
+PolyMixin.injectFunction(TargetClass.instance, MixinClass.instance, "helper");
+-----------------------------------------------------------------------------
+
+# injectByName(targetInstance, targetFuncName, sourceInstance, sourceFuncName, at, target, ordinal, shift)
+
+Injects the contents of a source function into a target function by name.
+
+This is the main entry point for performing mixin-style injections. Depending on `at`,
+the injection may occur at the start of the target function, before returns, at the end,
+or around a specific method call inside the function body.
+
+@param targetInstance The instance containing the target function.
+@param targetFuncName The name of the target function to modify.
+@param sourceInstance The instance containing the source function.
+@param sourceFuncName The name of the source function to inject.
+@param at Where to inject (`At.HEAD`, `At.RETURN`, `At.TAIL`, or `At.INVOKE`).
+@param target (Optional) The name of the method call to inject around (only used with `At.INVOKE`).
+@param ordinal (Optional) The occurrence index of the target method call (-1 for all occurrences).
+@param shift (Optional) Whether to inject before or after the target call (`Shift.BEFORE` or `Shift.AFTER`).
+@return True if the injection succeeded, false otherwise.
+
+
+@example
+// Inject `onUpdateMixin` at the head of `onUpdate`
+PolyMixin.injectByName(TargetClass.instance, "onUpdate", MixinClass.instance, "onUpdateMixin", At.HEAD);
+
+@example
+// Inject before the first `doSmth` call inside the `onUpdate` function
+PolyMixin.injectByName(TargetClass.instance, "onUpdate", MixinClass.instance, "onUpdateMixin", At.INVOKE, "doSmth", 0, Shift.BEFORE);
+-----------------------------------------------------------------------------
+
+# overwrite(targetInstance, targetFuncName, sourceInstance, sourceFuncName)
+Replaces a target function entirely with a source function.
+
+After this operation, the target function no longer contains its original body
+and instead becomes identical to the source function.
+
+@param targetInstance The instance containing the target function.
+@param targetFuncName The name of the target function to replace.
+@param sourceInstance The instance containing the source function.
+@param sourceFuncName The name of the source function to use as replacement.
+@return True if the replacement was successful, false otherwise.
+
+
+@example
+// Replace onUpdate() entirely with onUpdateMixin()
+PolyMixin.overwrite(targetInstance, "onUpdate", sourceInstance, "onUpdateMixin");

@@ -4,15 +4,13 @@ import hscript.Expr;
 import Lambda;
 
 /**
- * Utility module providing static methods and functions for injection, overwriting or modifying
+ * Utility module providing methods and functions for injection, overwriting or modifying
  * `PolymodScriptedClass` instances dynamically by manipulating their AST.
  */
 class PolyMixin extends ScriptedModule {
     private static var _instance:PolyMixin;
     public static var instance(get, set):PolyMixin;
-
     static function set_instance(value:PolyMixin):PolyMixin { return _instance = value; }
-
     static function get_instance():PolyMixin { return _instance; }
 
     function new() {
@@ -20,51 +18,6 @@ class PolyMixin extends ScriptedModule {
         PolyMixin.instance = this;
     }
 
-    /**
-     * Modifies a target function by wrapping its return values with a call to a mixin function.
-     *
-     * This method combines function injection and return-value modification to enable mixins
-     * that alter or override the return value of an existing function. It works by copying
-     * the mixin function into the target instance (via {@link injectFunction}) and then
-     * replacing every `return` statement in the target function with a wrapped call.
-     *
-     * The mixin function must provide an "empty recall" — i.e., a function that calls the
-     * designated `callFuncName` with a placeholder argument. This is necessary so the AST
-     * can be manipulated to insert the original return value as the argument.
-     *
-     * Currently, only `At.RETURN` is supported as an injection point.
-     *
-     * @param targetInstance The instance containing the target function to modify.
-     * @param targetFuncName The name of the function in the target instance to modify.
-     * @param sourceInstance The instance containing the mixin functions.
-     * @param sourceFuncName The name of the mixin function providing logic to inject.
-     * @param callFuncName The helper/empty-call function used as a template for wrapping return values.
-     * @param at Where to inject (currently only {@code At.RETURN} is supported).
-     * @return True if the modification succeeded, false otherwise.
-     *
-     *
-     * @example
-     * // Original target function:
-     *
-     * function getValue() {
-     *     return 5;
-     * }
-     *
-     *
-     * // Mixin function:
-     *
-     * function modifyValue(original:Int) {
-     *     modifyValue(); // empty recall, used as AST template
-     *     return original + 10;
-     * }
-     *
-     *
-     * // Apply mixin:
-     *
-     * PolyMixin.modifyByName(TargetClass.instance, "getValue", MixinClass.instance, "modifyValue", "modifyValue", At.RETURN);
-     *
-     * // Resulting behavior: getValue() now returns 15 instead of 5.
-     */
     public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, at:At, ?target:String, ?ordinal:Int):Bool {
         if (at == null) at = At.RETURN;
 
@@ -209,24 +162,6 @@ class PolyMixin extends ScriptedModule {
         return oldReturn;
     }
 
-    /**
-     * Copies a function from one instance to another, effectively adding
-     * the source function to the target instance.
-     *
-     * This modifies both the function cache and the AST field list of the target,
-     * making the function behave as if it were originally declared there.
-     *
-     * @param targetInstance The instance that will receive the new function.
-     * @param sourceInstance The instance containing the function to copy.
-     * @param sourceFuncName The name of the function to copy from the source instance.
-     * @return True if the function was successfully copied, false otherwise.
-     *
-     *
-     * @example
-     * // Copy `helper` function from `MixinClass` into `TargetClass`
-     *
-     * PolyMixin.injectFunction(TargetClass.instance, MixinClass.instance, "helper");
-     */
     public static function injectFunction(targetInstance:Dynamic, sourceInstance:Dynamic, sourceFuncName:String):Bool {
         var targetFuncs = ASTUtil.getFuncCache(targetInstance);
         var targetFields = ASTUtil.getFields(targetInstance);
@@ -258,34 +193,6 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
-    /**
-     * Injects the contents of a source function into a target function by name.
-     *
-     * This is the main entry point for performing mixin-style injections. Depending on `at`,
-     * the injection may occur at the start of the target function, before returns, at the end,
-     * or around a specific method call inside the function body.
-     *
-     * @param targetInstance The instance containing the target function.
-     * @param targetFuncName The name of the target function to modify.
-     * @param sourceInstance The instance containing the source function.
-     * @param sourceFuncName The name of the source function to inject.
-     * @param at Where to inject (`At.HEAD`, `At.RETURN`, `At.TAIL`, or `At.INVOKE`).
-     * @param target (Optional) The name of the method call to inject around (only used with `At.INVOKE`).
-     * @param ordinal (Optional) The occurrence index of the target method call (-1 for all occurrences).
-     * @param shift (Optional) Whether to inject before or after the target call (`Shift.BEFORE` or `Shift.AFTER`).
-     * @return True if the injection succeeded, false otherwise.
-     *
-     *
-     * @example
-     * // Inject `onUpdateMixin` at the head of `onUpdate`
-     *
-     * PolyMixin.injectByName(TargetClass.instance, "onUpdate", MixinClass.instance, "onUpdateMixin", At.HEAD);
-     *
-     * @example
-     * // Inject before the first `doSmth` call inside the `onUpdate` function
-     *
-     * PolyMixin.injectByName(TargetClass.instance, "onUpdate", MixinClass.instance, "onUpdateMixin", At.INVOKE, "doSmth", 0, Shift.BEFORE);
-     */
     public static function injectByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:At, ?target:String, ?ordinal:Int, ?shift:Shift):Bool {
         if (at == null) at = At.HEAD;
         var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
@@ -405,24 +312,6 @@ class PolyMixin extends ScriptedModule {
         return targetFunc;
     }
 
-    /**
-     * Replaces a target function entirely with a source function.
-     *
-     * After this operation, the target function no longer contains its original body
-     * and instead becomes identical to the source function.
-     *
-     * @param targetInstance The instance containing the target function.
-     * @param targetFuncName The name of the target function to replace.
-     * @param sourceInstance The instance containing the source function.
-     * @param sourceFuncName The name of the source function to use as replacement.
-     * @return True if the replacement was successful, false otherwise.
-     *
-     *
-     * @example
-     * // Replace onUpdate() entirely with onUpdateMixin()
-     *
-     * PolyMixin.overwrite(targetInstance, "onUpdate", sourceInstance, "onUpdateMixin");
-     */
     public static function overwrite(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String):Bool {
         var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
         if (validation == null) return false;

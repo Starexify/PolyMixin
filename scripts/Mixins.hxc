@@ -1,0 +1,97 @@
+import funkin.data.song.SongRegistry;
+import funkin.data.stage.StageRegistry;
+import funkin.data.story.level.LevelRegistry;
+import funkin.modding.module.ModuleHandler;
+import funkin.modding.module.ScriptedModule;
+import funkin.play.song.Song.SongParams;
+import funkin.util.ReflectUtil;
+import hscript.Expr;
+import polymod.hscript._internal.PolymodClassDeclEx;
+import polymod.hscript._internal.PolymodScriptClass;
+
+class Mixins extends ScriptedModule {
+    private static var _instance:Mixins;
+    public static var instance(get, set):Mixins;
+    static function set_instance(value:Mixins):Mixins { return _instance = value; }
+    static function get_instance():Mixins { return _instance; }
+
+    public function new() {
+        super("Mixins");
+        Mixins.instance = this;
+        //trace(retrieveParams("AnnotationsMixin"));
+    }
+
+    // Not working to give config manually yet
+    public function addConfig(path:String) {
+        //trace(path);
+    }
+
+    public static function addConfigStatic(path:String) {
+        //trace(path);
+    }
+
+    function retrieveParams(className:String):Null<MixinParam> {
+        var meta = getMetadata(className);
+        if (meta == null || meta.name == null) return null;
+
+        var result:MixinParam = { targets: [], kind: kindFromStr(meta.name) };
+        if (result.kind == null) return null;
+
+        for (param in meta.params) {
+            switch (param.e) {
+                case Expr.EIdent(id):
+                    result.targets.push(id);
+                default: trace("Unhandled param in class " + className + ": " + param.e);
+            }
+        }
+
+        return result;
+    }
+
+    function getMetadata(name:String, ?songParams:SongParams):Metadata {
+        var cls:PolymodScriptClass = null;
+
+        try {
+            cls = ModuleHandler.getModule(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = SongRegistry.instance.fetchEntry(name, songParams)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = LevelRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) try {
+            cls = StageRegistry.instance.fetchEntry(name)._asc;
+        } catch (e:Dynamic) {}
+
+        if (cls == null) {
+            trace("No scripted module/song/level/stage found for: " + name);
+            return null;
+        }
+
+        var _c:PolymodClassDeclEx = ReflectUtil.getField(cls, "_c");
+        return _c.meta[0];
+    }
+
+    public function kindFromStr(str:String):MixinKind {
+        return switch (str) {
+            case ":Mixin": MixinKind.Mixin;
+            case ":ModuleMixin": MixinKind.Mixin;
+            case ":SongMixin": MixinKind.SongMixin;
+            case ":LevelMixin": MixinKind.LevelMixin;
+            case ":StageMixin": MixinKind.StageMixin;
+        };
+    }
+}
+
+enum MixinKind {
+    Mixin;
+    SongMixin;
+    LevelMixin;
+    StageMixin;
+}
+
+typedef MixinParam = {targets:Array<String>, kind:MixinKind}

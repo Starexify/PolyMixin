@@ -36,7 +36,6 @@ class ASTUtil {
         return StageRegistry.instance.fetchEntry(name)._asc;
     }
 
-
     public static function getScriptedCharacter(name:String) {
         if (CharacterDataParser.characterScriptedClass.get(name) == null) return null;
         else return CharacterDataParser.fetchCharacter(name)._asc;

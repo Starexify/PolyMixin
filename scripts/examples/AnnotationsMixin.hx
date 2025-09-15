@@ -1,21 +1,7 @@
-import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
 
+@:Mixin(Annotations)
 class AnnotationsMixin extends ScriptedModule {
-    var injected:Bool = false;
-
-    override public function onStateChangeBegin(event:StateChangeScriptEvent) {
-        Annotations.instance.test();
-        Annotations.instance.testTwo();
-        Annotations.instance.testThree();
-        Annotations.instance.newTest();
-    }
-
-    override public function onUpdate(event:UpdateScriptEvent) {
-        if (injected) return;
-        injected = MixinAnnotationProcessor.applyMixins(this, Annotations.instance);
-    }
-
     @:Overwrite(method = "test")
     function testOverwrite() {
         trace("Overwrote test()");

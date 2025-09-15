@@ -1,14 +1,16 @@
 import funkin.modding.module.ScriptedModule;
+import funkin.modding.events.ScriptEvent;
 
 class Annotations extends ScriptedModule {
-    private static var _instance:Annotations;
-    public static var instance(get, set):Annotations;
-    static function set_instance(value:Annotations):Annotations { return _instance = value; }
-    static function get_instance():Annotations { return _instance; }
+    override public function onStateChangeBegin(event:StateChangeScriptEvent) {
+        test();
+        testTwo();
+        testThree();
+        //newTest();
+    }
 
     public function new() {
         super("Annotations");
-        Annotations.instance = this;
     }
 
     public function test() {

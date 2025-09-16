@@ -1,8 +1,5 @@
 {
   "mixins": [
-    { "className": "AnnotationsMixin", "kind": "Mixin" },
-    { "className": "OtherSongMixin", "kind": "Song"},
-    { "className": "SomeSongMixin", "kind": "Song", "params": { "id": "testing", "variation": "default" } },
-    "OtherMixin"
+    { "className": "AnnotationsMixin", "kind": "Mixin" }
   ]
 }

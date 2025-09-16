@@ -3,10 +3,10 @@ import funkin.modding.module.ScriptedModule;
 
 class Annotations extends ScriptedModule {
     override public function onStateChangeBegin(event:StateChangeScriptEvent) {
-        test();
-        testTwo();
-        testThree();
-        testFour();
+        //test();
+        //testTwo();
+        //testThree();
+        //testFour();
         //newTest();
     }
 

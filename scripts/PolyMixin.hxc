@@ -11,7 +11,9 @@ import Std;
 class PolyMixin extends ScriptedModule {
     static var _instance:PolyMixin;
     public static var instance(get, set):PolyMixin;
+
     static function set_instance(value:PolyMixin):PolyMixin { return _instance = value; }
+
     static function get_instance():PolyMixin { return _instance; }
 
     function new() {
@@ -20,9 +22,32 @@ class PolyMixin extends ScriptedModule {
     }
 
     // MARK: - Public API Methods
+    public static function modifyRecByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, ?at:At, ?target:String, ?ordinal:Int):Bool {
+        at = at ?? At.INVOKE;
+        var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
+        if (validation == null) return false;
+
+        var callFunc = validation.sourceFuncs.get(callFuncName);
+        if (callFunc == null) {
+            trace("Call function " + callFuncName + " not found");
+            return false;
+        }
+
+        var newFunc = switch (at) {
+            case At.INVOKE:
+                injectFunction(targetInstance, sourceInstance, sourceFuncName);
+                modifyRec(validation.targetFunc, callFunc, sourceFuncName, target, ordinal);
+            default:
+                trace("Only At.INVOKE is supported for this function!");
+                return false;
+        }
+
+        validation.targetFuncs.set(targetFuncName, newFunc);
+        return true;
+    }
+
     public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, at:At, ?target:String, ?ordinal:Int):Bool {
         at = at ?? At.RETURN;
-
         var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
         if (validation == null) return false;
 
@@ -40,7 +65,7 @@ class PolyMixin extends ScriptedModule {
                 injectFunction(targetInstance, sourceInstance, sourceFuncName);
                 modifyExprValue(validation.targetFunc, callFunc, sourceFuncName, target, ordinal);
             default:
-                trace("Only At.RETURN/At.INVOKE works at the moment");
+                trace("Only At.RETURN/At.INVOKE are supported for this function !");
                 return false;
         }
 
@@ -75,7 +100,117 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
+    public static function injectFunction(targetInstance:Dynamic, sourceInstance:Dynamic, sourceFuncName:String):Bool {
+        var targetFuncs = ASTUtil.getFuncCache(targetInstance);
+        var targetFields = ASTUtil.getFields(targetInstance);
+        var sourceFuncs:Map<String, FunctionDecl> = ASTUtil.getFuncCache(sourceInstance);
+
+        if (targetFuncs == null || sourceFuncs == null || targetFields == null) {
+            trace("Failed to get required caches/fields");
+            return false;
+        }
+
+        var sourceFunc = sourceFuncs.get(sourceFuncName);
+        if (sourceFunc == null) {
+            trace("Source function " + sourceFuncName + " not found");
+            return false;
+        }
+
+        var sourceFields:Array<FieldDecl> = ReflectUtil.getField(sourceInstance, "_c").fields;
+        var sourceField:FieldDecl = Lambda.find(sourceFields, (f) -> f.name == sourceFuncName);
+
+        if (sourceField == null) {
+            trace("Source field " + sourceFuncName + " not found");
+            return false;
+        }
+
+        targetFields.fields.push(sourceField);
+        targetFields.cached.set(sourceFuncName, sourceField);
+        targetFuncs.set(sourceFuncName, sourceFunc);
+
+        return true;
+    }
+
     // MARK: - Core Injection Logic
+    public static function modifyRec(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String, ?target:String, ?ordinal:Int):FunctionDecl {
+        if (target == null || target == "") {
+            trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
+            return targetFunc;
+        }
+        if (ordinal == null) ordinal = 0;
+        var targets = target.split(".");
+
+        var newCall = switch (callFunc.expr.e) {
+            case Expr.EBlock(expr): expr[0].e;
+            default:
+                trace("The source function " + sourceFuncName + " must provide an empty function recall for mixins to be able to modify the return value!");
+                return targetFunc;
+        }
+
+        switch (targetFunc.expr.e) {
+            case Expr.EBlock(exprs):
+                var count = 0;
+                for (i in 0...exprs.length) {
+                    switch (exprs[i].e) {
+                        case Expr.ECall(callExpr, params):
+                            var newExpr = PolyMixin.instance.recursiveSearch(exprs[i].e, newCall, targets, ordinal, count);
+                            if (newExpr.modified) {
+                                trace("Reciever found, replacing '" + targets[0] + "' with '" + sourceFuncName + "()'");
+                                exprs[i].e = newExpr.expr;
+                                return targetFunc;
+                            }
+                            count = newExpr.curCount;
+                    }
+                }
+            default: trace("No EBlock found in the function, no mixins were applied!");
+        }
+
+        return targetFunc;
+    }
+
+    public function recursiveSearch(tgCall:Expr, newCall:Expr, targets:Array<String>, ordinal:Int, curCount:Int):Recursive {
+        var targetExpr = targets[0];
+        var targetCall = targets[1];
+        switch (tgCall) {
+            case Expr.ECall(tgExpr, params):
+                switch (tgExpr.e) {
+                    case Expr.EField(expr, f):
+                        switch (expr.e) {
+                            case Expr.EIdent(v):
+                                if (v == targetExpr && f == targetCall) {
+                                    //trace("Call found: " + v + "." + f + " (occurrence " + curCount + ")");
+
+                                    if (curCount == ordinal) {
+                                        switch (newCall) {
+                                            case Expr.ECall(callE, args):
+                                                args[0].e = expr.e;
+                                                for (i in 0...params.length) {
+                                                    args[i + 1].e = params[i].e;
+                                                }
+                                                expr.e = newCall;
+                                        }
+                                        return { expr: tgCall, modified: true, curCount: curCount + 1 };
+                                    } else {
+                                        return { expr: tgCall, modified: false, curCount: curCount + 1 };
+                                    }
+                                }
+                                return { expr: tgExpr, modified: false, curCount: curCount };
+                            case Expr.EField(fExpr): {
+                                //trace(fExpr);
+/*                        trace(fExpr);
+                        trace(expr.e);
+                        var result = recursiveSearch(fExpr, newCall, targets, ordinal, curCount);
+                        return { expr: expr.e, modified: result.modified, curCount: result.curCount };*/
+                            }
+                            default: trace("No Expr.EField found for Reciever, please provide an actual reciever !");
+                        }
+                }
+            default: trace("No Expr.ECall, please provide an actual reciever !");
+        }
+
+        return { expr: tgCall, modified: false, curCount: curCount };
+    }
+
     public static function modifyExprValue(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String, ?target:String, ?ordinal:Int):FunctionDecl {
         /*      if (target == "" || target == null) {
             trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
@@ -187,37 +322,6 @@ class PolyMixin extends ScriptedModule {
                 expr.e = newCall;
         }
         return oldReturn;
-    }
-
-    public static function injectFunction(targetInstance:Dynamic, sourceInstance:Dynamic, sourceFuncName:String):Bool {
-        var targetFuncs = ASTUtil.getFuncCache(targetInstance);
-        var targetFields = ASTUtil.getFields(targetInstance);
-        var sourceFuncs:Map<String, FunctionDecl> = ASTUtil.getFuncCache(sourceInstance);
-
-        if (targetFuncs == null || sourceFuncs == null || targetFields == null) {
-            trace("Failed to get required caches/fields");
-            return false;
-        }
-
-        var sourceFunc = sourceFuncs.get(sourceFuncName);
-        if (sourceFunc == null) {
-            trace("Source function " + sourceFuncName + " not found");
-            return false;
-        }
-
-        var sourceFields:Array<FieldDecl> = ReflectUtil.getField(sourceInstance, "_c").fields;
-        var sourceField:FieldDecl = Lambda.find(sourceFields, (f) -> f.name == sourceFuncName);
-
-        if (sourceField == null) {
-            trace("Source field " + sourceFuncName + " not found");
-            return false;
-        }
-
-        targetFields.fields.push(sourceField);
-        targetFields.cached.set(sourceFuncName, sourceField);
-        targetFuncs.set(sourceFuncName, sourceFunc);
-
-        return true;
     }
 
     public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At, ?ordinal:Int):FunctionDecl {
@@ -429,5 +533,7 @@ enum Shift {
     BEFORE;
     AFTER;
 }
+
+typedef Recursive = {expr:Expr, modified:Bool, curCount:Int}
 
 typedef ValidationDef = {targetFuncs:Map<String, FunctionDecl>, sourceFuncs:Map<String, FunctionDecl>, targetFunc:FunctionDecl, sourceFunc:FunctionDecl}

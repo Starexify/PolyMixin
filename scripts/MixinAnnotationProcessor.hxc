@@ -3,11 +3,6 @@ import funkin.util.ReflectUtil;
 import hscript.Expr;
 import polymod.hscript._internal.PolymodClassDeclEx;
 
-/**
- * MixinAnnotationProcessor handles applying mixins defined via metadata (annotations)
- *
- * It supports @:Overwrite, @:Inject, @:ModifyReturn, @:ModifyExpression, and @:InjectFunction
- */
 class MixinAnnotationProcessor {
 
     /**
@@ -143,6 +138,13 @@ class MixinAnnotationProcessor {
                 if (params.method != null) {
                     trace("Modifying expression from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     if (params.target != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call, PolyMixin.instance.atFromStr("INVOKE"), params.target, params.ordinal);
+                    else trace("Warning: target is null for " + funcName);
+                } else trace("Warning: method name is null for " + funcName);
+            case ":ModifyReciever":
+                var params:ModifyExprParams = retrieveParams(meta, ["method", "target", "ordinal", "call"]);
+                if (params.method != null) {
+                    trace("Modifying reciever from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    if (params.target != null) PolyMixin.modifyRecByName(target, params.method, source, funcName, params.call, null, params.target, params.ordinal);
                     else trace("Warning: target is null for " + funcName);
                 } else trace("Warning: method name is null for " + funcName);
             case ":InjectFunction":

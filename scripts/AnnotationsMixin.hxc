@@ -42,6 +42,24 @@ class AnnotationsMixin extends ScriptedModule {
         testExpr(original);
     }
 
+
+    @:ModifyReciever(method = "testFive", call = testRecCall, target = "Annotations.setX", ordinal = 1)
+    function testRec(receiver:Test, newX:Int) {
+        if (newX == 2) {
+            return AnnotationsMixin;
+        }
+        return receiver;
+    }
+
+    function testRecCall(receiver:Test, newX:Int) {
+        testRec(receiver, newX);
+    }
+
+    public static function setX(newX:Int) {
+        trace("X value for AnnotationsMixin set to: " + newX);
+    }
+
+
     @:InjectFunction
     function newTest() {
         trace("New Test injected into class");

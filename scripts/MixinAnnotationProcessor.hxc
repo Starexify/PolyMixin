@@ -110,13 +110,13 @@ class MixinAnnotationProcessor {
             case ":Overwrite":
                 var methodName:String = retrieveParams(meta, ["method"]).method;
                 if (methodName != null) {
-                    trace("Overwriting method: " + methodName + "() with " + funcName + "() from class " + className);
+                    trace("Overwriting method " + methodName + "() with " + funcName + "() from class " + className);
                     PolyMixin.overwrite(target, methodName, source, funcName);
                 } else trace("Warning: method name is null for " + funcName);
             case ":Inject":
                 var params:InjectionParams = retrieveParams(meta, ["method", "at", "target", "ordinal", "shift"]);
                 if (params.method != null) {
-                    trace("Injecting into method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    trace("Injecting into method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     switch (params.at) {
                         case "INVOKE":
                             if (params.target != null) PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at, params.target, params.ordinal, params.shift);
@@ -130,25 +130,25 @@ class MixinAnnotationProcessor {
             case ":ModifyReturn":
                 var params:ModifyReturnParams = retrieveParams(meta, ["method", "call"]);
                 if (params.method != null) {
-                    trace("Modifying return from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    trace("Modifying return from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     PolyMixin.modifyByName(target, params.method, source, funcName, params.call, PolyMixin.instance.atFromStr("RETURN"));
                 } else trace("Warning: method name is null for " + funcName);
             case ":ModifyExpression":
                 var params:ModifyExprParams = retrieveParams(meta, ["method", "target", "ordinal", "call"]);
                 if (params.method != null) {
-                    trace("Modifying expression from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    trace("Modifying expression from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     if (params.target != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call, PolyMixin.instance.atFromStr("INVOKE"), params.target, params.ordinal);
                     else trace("Warning: target is null for " + funcName);
                 } else trace("Warning: method name is null for " + funcName);
             case ":ModifyReceiver":
                 var params:ModifyExprParams = retrieveParams(meta, ["method", "target", "ordinal", "call"]);
                 if (params.method != null) {
-                    trace("Modifying receiver from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    trace("Modifying receiver from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     if (params.target != null) PolyMixin.modifyRecByName(target, params.method, source, funcName, params.call, null, params.target, params.ordinal);
                     else trace("Warning: target is null for " + funcName);
                 } else trace("Warning: method name is null for " + funcName);
             case ":InjectFunction":
-                trace("Injecting function: " + funcName + "() from class " + className);
+                trace("Injecting function " + funcName + "() from class " + className);
                 PolyMixin.injectFunction(target, source, funcName);
         }
     }

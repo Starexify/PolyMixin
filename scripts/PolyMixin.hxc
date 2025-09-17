@@ -11,9 +11,7 @@ import Std;
 class PolyMixin extends ScriptedModule {
     static var _instance:PolyMixin;
     public static var instance(get, set):PolyMixin;
-
     static function set_instance(value:PolyMixin):PolyMixin { return _instance = value; }
-
     static function get_instance():PolyMixin { return _instance; }
 
     function new() {
@@ -75,7 +73,6 @@ class PolyMixin extends ScriptedModule {
 
     public static function injectByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:At, ?target:String, ?ordinal:Int, ?shift:Shift):Bool {
         at = at ?? At.HEAD;
-
         var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
         if (validation == null) return false;
 
@@ -103,7 +100,7 @@ class PolyMixin extends ScriptedModule {
     public static function injectFunction(targetInstance:Dynamic, sourceInstance:Dynamic, sourceFuncName:String):Bool {
         var targetFuncs = ASTUtil.getFuncCache(targetInstance);
         var targetFields = ASTUtil.getFields(targetInstance);
-        var sourceFuncs:Map<String, FunctionDecl> = ASTUtil.getFuncCache(sourceInstance);
+        var sourceFuncs = ASTUtil.getFuncCache(sourceInstance);
 
         if (targetFuncs == null || sourceFuncs == null || targetFields == null) {
             trace("Failed to get required caches/fields");
@@ -134,18 +131,15 @@ class PolyMixin extends ScriptedModule {
     // MARK: - Core Injection Logic
     public static function modifyRec(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String, ?target:String, ?ordinal:Int):FunctionDecl {
         if (target == null || target == "") {
-            trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
+            trace("Target injection parameter is null or empty");
             return targetFunc;
         }
-        if (ordinal == null) ordinal = 0;
+        ordinal = ordinal ?? 0;
+
         var targets = target.split(".");
 
-        var newCall = switch (callFunc.expr.e) {
-            case Expr.EBlock(expr): expr[0].e;
-            default:
-                trace("The source function " + sourceFuncName + " must provide an empty function recall for mixins to be able to modify the return value!");
-                return targetFunc;
-        }
+        var newCall = extractCallExpression(callFunc, sourceFuncName);
+        if (newCall == null) return targetFunc;
 
         switch (targetFunc.expr.e) {
             case Expr.EBlock(exprs):
@@ -162,7 +156,7 @@ class PolyMixin extends ScriptedModule {
                             count = newExpr.curCount;
                     }
                 }
-            default: trace("No EBlock found in the function, no mixins were applied!");
+            default:
         }
 
         return targetFunc;
@@ -216,14 +210,10 @@ class PolyMixin extends ScriptedModule {
             trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
             return targetFunc;
         }*/
-        if (ordinal == null) ordinal = 0;
+        ordinal = ordinal ?? 0;
 
-        var newCall = switch (callFunc.expr.e) {
-            case Expr.EBlock(expr): expr[0].e;
-            default:
-                trace("The source function " + sourceFuncName + " must provide an empty function recall for mixins to be able to modify the return value!");
-                return targetFunc;
-        }
+        var newCall = extractCallExpression(callFunc, sourceFuncName);
+        if (newCall == null) return targetFunc;
 
         switch (targetFunc.expr.e) {
             case Expr.EBlock(targetExprs):
@@ -263,7 +253,7 @@ class PolyMixin extends ScriptedModule {
                     }
                 }
 
-            default: trace("Target function is NOT an EBlock!");
+            default:
         }
 
         return targetFunc;
@@ -271,23 +261,20 @@ class PolyMixin extends ScriptedModule {
 
     public static function wrapExpr(oldExpr:Expr, newCall:Expr, sourceFuncName:String, target:String, ordinal:Int):Expr {
         switch (oldExpr) {
-            case Expr.EIf(expr, e1, e2):
+            case Expr.EIf(cond, e1, e2):
                 switch (newCall) {
                     case Expr.ECall(callExpr, params): params[0].e = expr.e;
+                    default:
                 }
-                expr.e = newCall;
+                cond.e = newCall;
+            default:
         }
-
         return oldExpr;
     }
 
     public static function modifyReturnValue(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String):FunctionDecl {
-        var newCall = switch (callFunc.expr.e) {
-            case Expr.EBlock(expr): expr[0].e;
-            default:
-                trace("The source function " + sourceFuncName + " must provide an empty function recall for mixins to be able to modify the return value!");
-                return targetFunc;
-        }
+        var newCall = extractCallExpression(callFunc, sourceFuncName);
+        if (newCall == null) return targetFunc;
 
         switch (targetFunc.expr.e) {
             case Expr.EBlock(targetExprs):
@@ -303,7 +290,7 @@ class PolyMixin extends ScriptedModule {
                     }
                 }
                 if (!returnFound) trace("No return statement found in the function, no mixins were applied!");
-            default: trace("Target function is NOT an EBlock!");
+            default:
         }
 
         return targetFunc;
@@ -312,9 +299,8 @@ class PolyMixin extends ScriptedModule {
     public static function wrapReturn(oldReturn:Expr, newCall:Expr, sourceFuncName:String):Expr {
         switch (oldReturn.e) {
             case Expr.EReturn(expr):
-                var original:Expr = expr.e;
                 switch (newCall) {
-                    case Expr.ECall(callExpr, params): params[0].e = original;
+                    case Expr.ECall(callExpr, params): params[0].e = expr.e;
                     default:
                         trace("Invalid call expression in source function " + sourceFuncName);
                         return oldReturn;
@@ -335,17 +321,17 @@ class PolyMixin extends ScriptedModule {
                     case At.RETURN: injectAtReturn(targetExprs, sourceExprs, ordinal);
                     case At.TAIL: for (expr in sourceExprs) targetExprs.push(expr);
                 }
-            default: trace("Target function is NOT an EBlock!");
+            default:
         }
 
         return targetFunc;
     }
 
     public static function injectAtReturn(targetExprs:Array<Expr>, sourceExprs:Array<Expr>, ordinal:Int) {
-        if (ordinal == null) ordinal = -1;
-
+        ordinal = ordinal ?? -1;
         var i = 0;
         var returnCount = 0;
+
         while (i < targetExprs.length) {
             switch (targetExprs[i].e) {
                 case Expr.EReturn(_):
@@ -419,7 +405,7 @@ class PolyMixin extends ScriptedModule {
 
     public static function injectAtTarget(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, target:String, ordinal:Int, shift:Shift):FunctionDecl {
         if (target == "" || target == null) {
-            trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
+            trace("Target injection parameter is null or empty");
             return targetFunc;
         }
         shift = shift ?? Shift.BEFORE;
@@ -443,7 +429,6 @@ class PolyMixin extends ScriptedModule {
 
                             if (methodName == target) {
                                 //trace("Found target '" + target + "' at index " + i + " (match #" + matchCount + ")");
-
                                 if (ordinal == -1 || matchCount == ordinal) targetIndex = i;
                                 matchCount++;
                             }
@@ -461,18 +446,26 @@ class PolyMixin extends ScriptedModule {
 
                 for (j in 0...sourceExprs.length) targetExprs.insert(insertIndex + j, sourceExprs[j]);
 
-            default: trace("Target function is NOT an EBlock!");
+            default:
         }
 
         return targetFunc;
     }
 
     // MARK: - Utility Methods
-    public static function extractSourceExpressions(sourceFunc:FunctionDecl):Null<Array<Expr>> {
+    static function extractSourceExpressions(sourceFunc:FunctionDecl):Null<Array<Expr>> {
         return switch (sourceFunc.expr.e) {
             case Expr.EBlock(exprs): exprs;
+            default: null;
+        }
+    }
+
+    static function extractCallExpression(callFunc:FunctionDecl, sourceFuncName:String):Null<Expr> {
+        return switch (callFunc.expr.e) {
+            case Expr.EBlock(exprs):
+                if (exprs.length > 0) exprs[0].e else null;
             default:
-                trace("Source function is not an EBlock, please provide an actual function!");
+                trace("Source function " + sourceFuncName + " must provide a valid function recall");
                 null;
         }
     }
@@ -495,7 +488,7 @@ class PolyMixin extends ScriptedModule {
         };
     }
 
-    public static function validateInstances(targetInstance:Dynamic, sourceInstance:Dynamic, targetFuncName:String, sourceFuncName:String):Null<ValidationDef> {
+    static function validateInstances(targetInstance:Dynamic, sourceInstance:Dynamic, targetFuncName:String, sourceFuncName:String):Null<ValidationDef> {
         var targetFuncs = ASTUtil.getFuncCache(targetInstance);
         var sourceFuncs = ASTUtil.getFuncCache(sourceInstance);
 

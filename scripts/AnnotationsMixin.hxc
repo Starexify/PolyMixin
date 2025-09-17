@@ -43,7 +43,7 @@ class AnnotationsMixin extends ScriptedModule {
     }
 
 
-    @:ModifyReciever(method = "testFive", call = testRecCall, target = "Annotations.setX", ordinal = 1)
+    @:ModifyReceiver(method = "testFive", call = testRecCall, target = "Annotations.setX", ordinal = 1)
     function testRec(receiver:Test, newX:Int) {
         if (newX == 2) {
             return AnnotationsMixin;

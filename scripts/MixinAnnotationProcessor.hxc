@@ -140,10 +140,10 @@ class MixinAnnotationProcessor {
                     if (params.target != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call, PolyMixin.instance.atFromStr("INVOKE"), params.target, params.ordinal);
                     else trace("Warning: target is null for " + funcName);
                 } else trace("Warning: method name is null for " + funcName);
-            case ":ModifyReciever":
+            case ":ModifyReceiver":
                 var params:ModifyExprParams = retrieveParams(meta, ["method", "target", "ordinal", "call"]);
                 if (params.method != null) {
-                    trace("Modifying reciever from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    trace("Modifying receiver from method: " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     if (params.target != null) PolyMixin.modifyRecByName(target, params.method, source, funcName, params.call, null, params.target, params.ordinal);
                     else trace("Warning: target is null for " + funcName);
                 } else trace("Warning: method name is null for " + funcName);

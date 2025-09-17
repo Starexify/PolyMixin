@@ -155,7 +155,7 @@ class PolyMixin extends ScriptedModule {
                         case Expr.ECall(callExpr, params):
                             var newExpr = PolyMixin.instance.recursiveSearch(exprs[i].e, newCall, targets, ordinal, count);
                             if (newExpr.modified) {
-                                trace("Reciever found, replacing '" + targets[0] + "' with '" + sourceFuncName + "()'");
+                                trace("Receiver found, replacing '" + targets[0] + "' with '" + sourceFuncName + "()'");
                                 exprs[i].e = newExpr.expr;
                                 return targetFunc;
                             }
@@ -202,10 +202,10 @@ class PolyMixin extends ScriptedModule {
                         var result = recursiveSearch(fExpr, newCall, targets, ordinal, curCount);
                         return { expr: expr.e, modified: result.modified, curCount: result.curCount };*/
                             }
-                            default: trace("No Expr.EField found for Reciever, please provide an actual reciever !");
+                            default: trace("No Expr.EField found for Reciever, please provide an actual receiver !");
                         }
                 }
-            default: trace("No Expr.ECall, please provide an actual reciever !");
+            default: trace("No Expr.ECall, please provide an actual receiver !");
         }
 
         return { expr: tgCall, modified: false, curCount: curCount };

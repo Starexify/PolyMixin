@@ -15,7 +15,7 @@
 
 ## What is PolyMixin ?
 **PolyMixin** is a **framework and API** for V-Slice mods, built on [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) manipulation.
-It is inspired by the mixin pattern used in projects like Sponge Mixin (Minecraft), and allows modders to patch or extend scripted classes without modifying their original scripts.
+It is inspired by the mixin pattern used in projects like SpongePowered Mixin (Minecraft), and allows modders to patch or extend scripted classes without modifying their original scripts.
 
 ## How does it work ?
 PolyMixin hooks into Polymod's scripting system by using the `PolymodScriptClass`(`_abs`) and modifying the `_cachedFunctionDecls` and `_cachedFieldDecls`. 

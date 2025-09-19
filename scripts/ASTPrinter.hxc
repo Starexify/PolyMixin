@@ -1,0 +1,550 @@
+import funkin.util.ReflectUtil;
+import haxe.ds.StringMap;
+import hscript.Expr;
+import Lambda;
+import polymod.hscript._internal.PolymodClassDeclEx;
+import Std;
+import StringBuf;
+
+class ASTPrinter {
+    var buf:StringBuf;
+    var tabs:String = "";
+
+    // can be changed if needed
+    public static var spacer = "\n";
+    public static var tab = "    ";
+    public static var wrapCalls:Bool = false;
+
+    public function printClass(instance) {
+        var funcDecls:StringMap<FunctionDecl> = new StringMap();
+        var funcMetas:StringMap<Metadata> = new StringMap();
+        var varDecls:StringMap<FieldDecl> = new StringMap();
+
+        var clazz:PolymodClassDeclEx = ReflectUtil.field(instance, "_c");
+
+        for (field in clazz.fields) {
+            switch (field.kind) {
+                case Expr.KVar(v): varDecls.set(field.name, field);
+                case Expr.KFunction(funcDecl): if (field.meta != null) funcMetas.set(field.name, field.meta);
+            }
+        }
+
+        for (field in clazz.staticFields) {
+            switch (field.kind) {
+                case Expr.KFunction(funcDecl):
+                    funcDecls.set("static " + field.name, funcDecl);
+                    if (field.meta != null) funcMetas.set("static " + field.name, field.meta);
+
+                case Expr.KVar(v): varDecls.set("static " + field.name, field);
+            }
+        }
+
+        var instFuncs:Map<String, FunctionDecl> = ReflectUtil.field(instance, "_cachedFunctionDecls");
+        for (kv in instFuncs.keyValueIterator()) funcDecls.set(kv.key, kv.value);
+
+        var result = "";
+
+        // Add package declaration
+        var pkg = formatPackage(clazz);
+        if (pkg != "") result += pkg + "\n" + spacer;
+
+        // Add imports
+        var imports = formatImports(clazz);
+        if (imports != "") result += imports + "\n" + spacer;
+
+        // Add class declaration with body
+        result += formatClass(clazz, varDecls, funcDecls, funcMetas);
+
+        return result;
+    }
+
+    public function formatPackage(clazz:PolymodClassDeclEx):String {
+        if (clazz.pkg != null && clazz.pkg.length > 0) {
+            return "package " + clazz.pkg.join(".") + ";";
+        }
+        return "";
+    }
+
+    public function formatImports(clazz:PolymodClassDeclEx):String {
+        var importLines:Array<String> = [];
+        var usingLines:Array<String> = [];
+
+        // Regular imports
+        if (clazz.imports != null) {
+            for (importName in clazz.imports.keys()) {
+                var importData = clazz.imports.get(importName);
+                importLines.push("import " + importData.fullPath + ";");
+            }
+        }
+
+        // Using imports
+        if (clazz.usings != null) {
+            for (usingName in clazz.usings.keys()) {
+                var usingData = clazz.usings.get(usingName);
+                usingLines.push("using " + usingData.fullPath + ";");
+            }
+        }
+
+        if (importLines.length == 0 && usingLines.length == 0)
+            return "";
+
+        if (importLines.length > 0 && usingLines.length > 0)
+            return importLines.join("\n") + "\n\n" + usingLines.join("\n");
+
+        return importLines.length > 0 ? importLines.join("\n") : usingLines.join("\n");
+    }
+
+    public function formatClass(clazz:PolymodClassDeclEx, varDecls:StringMap<FieldDecl>, funcDecls:StringMap<FunctionDecl>, funcMetas:StringMap<Metadata>):String {
+        var result = "";
+
+        if (clazz.meta != null && clazz.meta.length > 0) result += formatMeta(clazz.meta) + "\n";
+
+        result += "class " + clazz.name;
+
+        // Addd extend
+        if (clazz.extend != null) {
+            var oldBuf = buf;
+            buf = new StringBuf();
+            type(clazz.extend);
+            result += " extends " + buf.toString();
+            buf = oldBuf;
+        }
+
+        result += " {\n";
+        var classBody = "";
+
+        // Add variables
+        if (Lambda.count(varDecls) > 0) {
+            var formattedVars = formatVars(varDecls);
+            classBody += indentLines(formattedVars, tab) + "\n\n";
+        }
+
+        // Add functions
+        if (Lambda.count(funcDecls) > 0) {
+            var formattedFunctions = formatFunctions(funcDecls, funcMetas);
+            classBody += indentLines(formattedFunctions, tab);
+        }
+
+        result += classBody;
+        result += "\n}";
+
+        return result;
+    }
+
+    public function formatVars(varDecls:StringMap<FieldDecl>) {
+        var vars:Array<String> = [];
+
+        for (vd in varDecls.keyValueIterator()) {
+            var varString = "";
+            var varDecl = vd.value;
+
+            if (varDecl.meta != null && varDecl.meta.length > 0) varString += formatMeta(varDecl.meta) + "\n";
+
+            switch (varDecl.kind) {
+                case Expr.KVar(v):
+                    if (vd.key.indexOf("static ") == 0) varString += "static ";
+                    varString += "var " + varDecl.name;
+
+                    if (v.type != null) {
+                        var oldBuf = buf;
+                        buf = new StringBuf();
+                        add(":");
+                        type(v.type);
+                        varString += buf.toString();
+                        buf = oldBuf;
+                    }
+
+                    if (v.expr != null) {
+                        varString += " = ";
+                        varString += exprToString(v.expr);
+                    }
+
+                    varString += ";";
+                default: varString += "// Unknown field: " + varDecl.name + " (" + varDecl.kind + ")";
+            }
+            vars.push(varString);
+        }
+        return vars.join("\n");
+    }
+
+    public function formatFunctions(funcDecls:StringMap<FunctionDecl>, funcMetas:StringMap<Metadata>) {
+        var functions:Array<String> = [];
+
+        for (kv in funcDecls.keyValueIterator()) {
+            var funcString = formatFunction(kv.key, kv.value, funcMetas.get(kv.key));
+            functions.push(funcString);
+        }
+
+        return functions.join("\n\n");
+    }
+
+    public function formatFunction(name:String, funcDecl:FunctionDecl, ?meta:Metadata):String {
+        var funcString = "";
+        if (meta != null && meta.length > 0) funcString += formatMeta(meta) + "\n";
+
+        if (name.indexOf("static ") == 0) {
+            funcString += "static ";
+            name = name.substr(7);
+        }
+
+        funcString += "function " + name + "(";
+
+        var paramStrings = [];
+        for (arg in funcDecl.args) {
+            var paramStr = "";
+            if (arg.opt) paramStr += "?";
+            paramStr += arg.name;
+            if (arg.t != null) {
+                paramStr += ":";
+                var oldBuf = buf;
+                buf = new StringBuf();
+                type(arg.t);
+                paramStr += buf.toString();
+                buf = oldBuf;
+            }
+            paramStrings.push(paramStr);
+        }
+        funcString += paramStrings.join(", ");
+        funcString += ")";
+
+        if (funcDecl.ret != null) {
+            var oldBuf = buf;
+            buf = new StringBuf();
+            add(":");
+            type(funcDecl.ret);
+            funcString += buf.toString();
+            buf = oldBuf;
+        }
+
+        var funcBody = exprToString(funcDecl.expr);
+        funcString += " " + funcBody;
+
+        trace(funcString);
+        return funcString;
+    }
+
+    public function formatMeta(meta:Metadata):String {
+        var lines = [];
+        for (m in meta) {
+            var line = "@" + m.name;
+            if (m.params != null && m.params.length > 0) {
+                var paramStrs = [];
+                for (p in m.params) {
+                    var oldBuf = buf;
+                    buf = new StringBuf();
+                    exprInner(p);
+                    paramStrs.push(buf.toString());
+                    buf = oldBuf;
+                }
+                line += "(" + paramStrs.join(", ") + ")";
+            }
+            lines.push(line);
+        }
+        return lines.join("\n");
+    }
+
+    function exprToString(expr:Expr):String {
+        buf = new StringBuf();
+        tabs = "";
+        exprInner(expr);
+        return buf.toString();
+    }
+
+    function exprInner(expr:Expr) {
+        tabs = tabs ?? "";
+        if (expr == null) {
+            add("null");
+            return;
+        }
+
+        var inner = expr.e;
+        return switch (inner) {
+            case Expr.EConst(c): addConst(c);
+            case Expr.EIdent(v): add(v);
+            case Expr.EVar(n, t, e):
+                add("var " + n);
+                addType(t);
+                if (e != null) {
+                    add(" = ");
+                    exprInner(e);
+                }
+            case Expr.EFinal(n, t, e):
+                add("final " + n);
+                addType(t);
+                if (e != null) {
+                    add(" = ");
+                    exprInner(e);
+                }
+            case Expr.EParent(e): add("("); exprInner(e); add(")");
+            case Expr.EBlock(el):
+                if (el.length == 0) add("{ }");
+                else {
+                    add("{" + spacer);
+                    tabs += tab;
+                    for (e in el) {
+                        add(tabs);
+                        exprInner(e);
+                        add(spacer);
+                    }
+                    tabs = tabs.substring(0, tabs.length - tab.length);
+                    add(tabs + "}");
+                }
+            case Expr.EField(e, f): exprInner(e); add("." + f);
+            case Expr.EBinop(op, e1, e2):
+                exprInner(e1);
+                add(" " + op + " ");
+                exprInner(e2);
+            case Expr.EUnop(op, pre, e):
+                if (pre) {
+                    add(op);
+                    exprInner(e);
+                } else {
+                    exprInner(e);
+                    add(op);
+                }
+            case Expr.ECall(e, args):
+                if (e == null) exprInner(e);
+                else switch (e) {
+                    case Expr.EField(_), Expr.EIdent(_), Expr.EConst(_):
+                        exprInner(e);
+                    default:
+                        if (wrapCalls) add("(");
+                        exprInner(e);
+                        if (wrapCalls) add(")");
+                }
+                add("(");
+                var first = true;
+                for (a in args) {
+                    if (first) first = false else add(", ");
+                    exprInner(a);
+                }
+                add(")");
+            case Expr.EIf(cond, e1, e2):
+                add("if (");
+                exprInner(cond);
+                add(") ");
+                exprInner(e1);
+                if (e2 != null) {
+                    add(" else ");
+                    exprInner(e2);
+                }
+            case Expr.EWhile(cond, e):
+                add("while (");
+                exprInner(cond);
+                add(") ");
+                exprInner(e);
+            case Expr.EDoWhile(cond, e):
+                add("do ");
+                exprInner(e);
+                add(" while (");
+                exprInner(cond);
+                add(") ");
+            case Expr.EFor(v, it, e):
+                add("for (" + v + " in ");
+                exprInner(it);
+                add(") ");
+                exprInner(e);
+            case Expr.EForGen(it, e):
+                add("for (");
+                exprInner(it);
+                add(") ");
+                exprInner(e);
+            case Expr.EFunction(params, e, name, ret):
+                add("function");
+                if (name != null)
+                    add(" " + name);
+                add("(");
+                var first = true;
+                for (a in params) {
+                    if (first) first = false else add(", ");
+                    if (a.opt) add("?");
+                    add(a.name);
+                    addType(a.t);
+                }
+                add(")");
+                addType(ret);
+                add(" ");
+                exprInner(e);
+            case Expr.EReturn(e):
+                add("return");
+                if (e != null) {
+                    add(" ");
+                    exprInner(e);
+                }
+            case Expr.EArray(e, index):
+                exprInner(e);
+                add("[");
+                exprInner(index);
+                add("]");
+            case Expr.EArrayDecl(el):
+                add("[");
+                var first = true;
+                for (e in el) {
+                    if (first) first = false else add(", ");
+                    exprInner(e);
+                }
+                add("]");
+            case Expr.ENew(cl, args):
+                add("new " + cl + "(");
+                var first = true;
+                for (e in args) {
+                    if (first) first = false else add(", ");
+                    exprInner(e);
+                }
+                add(")");
+            case Expr.EThrow(e):
+                add("throw ");
+                exprInner(e);
+            case Expr.ETry(e, v, t, ecatch):
+                add("try ");
+                exprInner(e);
+                add(" catch (" + v);
+                addType(t);
+                add(") ");
+                exprInner(ecatch);
+            case Expr.EObject(fl):
+                if (fl.length == 0) add("{ }");
+                else {
+                    tabs += tab;
+                    addLine("{");
+                    for (f in fl) {
+                        add(tabs);
+                        add(f.name + " : ");
+                        exprInner(f.e);
+                        add("," + spacer);
+                    }
+                    tabs = tabs.substr(1);
+                    addLine("}");
+                }
+            case Expr.ETernary(c, e1, e2):
+                exprInner(c);
+                add(" ? ");
+                exprInner(e1);
+                add(" : ");
+                exprInner(e2);
+            case Expr.ESwitch(e, cases, def):
+                add("switch (");
+                exprInner(e);
+                add(") {" + spacer);
+                tabs += tab;
+                for (c in cases) {
+                    add(tabs + "case ");
+                    var first = true;
+                    for (v in c.values) {
+                        if (first) first = false else add(", ");
+                        exprInner(v);
+                    }
+                    add(": ");
+                    exprInner(c.expr);
+                    add(";" + spacer);
+                }
+                if (def != null) {
+                    add("default: ");
+                    exprInner(def);
+                    add(";" + spacer);
+                }
+                tabs = tabs.substring(0, tabs.length - tab.length);
+                add(tabs + "}");
+            case Expr.EMeta(name, args, e):
+                add("@");
+                add(name);
+                if (args != null && args.length > 0) {
+                    add("(");
+                    var first = true;
+                    for (a in args) {
+                        if (first) first = false else add(", ");
+                        exprInner(e);
+                    }
+                    add(")");
+                }
+                add(" ");
+                exprInner(e);
+            case Expr.ECheckType(e, t):
+                add("(");
+                exprInner(e);
+                add(" : ");
+                addType(t);
+                add(")");
+
+            default: add("/* unhandled: " + Std.string(inner) + " */");
+        }
+    }
+
+    function addType(t:CType) {
+        if (t != null) {
+            add(":");
+            type(t);
+        }
+    }
+
+    function type(t:CType) {
+        switch (t) {
+            case CType.CTOpt(t):
+                add('?');
+                type(t);
+            case CType.CTPath(path, params):
+                add(path.join("."));
+                if (params != null) {
+                    add("<");
+                    var first = true;
+                    for (p in params) {
+                        if (first) first = false else add(", ");
+                        type(p);
+                    }
+                    add(">");
+                }
+            case CType.CTNamed(name, t):
+                add(name);
+                add(':');
+                type(t);
+            case CType.CTFun(args, ret):
+                if (args.length > 1) add("(");
+                for (i in 0...args.length) {
+                    type(args[i]);
+                    if (i != args.length - 1) add(", ");
+                }
+                if (args.length > 1) add(")");
+                if (args.length > 1) add(" -> ");
+                else add("->");
+                type(ret);
+            case CType.CTAnon(fields):
+                add("{");
+                var first = true;
+                for (f in fields) {
+                    if (first) { first = false; add(" "); } else add(", ");
+                    add(f.name + " : ");
+                    type(f.t);
+                }
+                add(first ? "}" : " }");
+            case CType.CTParent(t):
+                add("(");
+                type(t);
+                add(")");
+            case CTExpr(e):
+                exprInner(e);
+        }
+    }
+
+    function addConst(c:Const) {
+        switch (c) {
+            case Expr.CInt(i): add(i);
+            case Expr.CFloat(f): add(f);
+            case Expr.CString(s): add('"'); add(s.split('"').join('\\"').split("\n").join("\\n").split("\r").join("\\r").split("\t").join("\\t")); add('"');
+        }
+    }
+
+    function add(s) {
+        buf.add(Std.string(s));
+    }
+
+    function indentLines(text:String, indentStr:String):String {
+        var lines = text.split("\n");
+        var indentedLines = lines.map(line -> line.length > 0 ? indentStr + line : line);
+        return indentedLines.join("\n");
+    }
+
+    function addLine(s:String) {
+        s = s ?? "";
+        add(tabs + s + spacer);
+    }
+}

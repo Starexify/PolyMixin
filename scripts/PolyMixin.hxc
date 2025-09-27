@@ -128,6 +128,11 @@ class PolyMixin extends ScriptedModule {
         return true;
     }
 
+    public static function injectImport(targetInstance:Dynamic, pkg:String):Bool {
+        trace("[PolyMixin] Injecting imports is not yet implemented !");
+        return true;
+    }
+
     // MARK: - Core Injection Logic
     public static function modifyRec(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String, ?target:String, ?ordinal:Int):FunctionDecl {
         if (target == null || target == "") {

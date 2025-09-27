@@ -38,7 +38,7 @@ class Mixins extends ScriptedModule {
     }
 
     override public function onCreate(event:ScriptEvent) {
-        Mixins.addConfig("PolyMixin");
+        //Mixins.addConfig("PolyMixin");
         if (!loadedConfigs) loadConfigs();
     }
 
@@ -80,8 +80,8 @@ class Mixins extends ScriptedModule {
         return true;
     }
 
-    public static function addConfig(path:String) {
-        configs.set(path, "mods/" + path + "/_polymixin_config.json");
+    public static function addConfig(modId:String) {
+        configs.set(modId, "mods/" + modId + "/_polymixin_config.json");
         ModStore.register("polyMixinCfgs", configs);
     }
 

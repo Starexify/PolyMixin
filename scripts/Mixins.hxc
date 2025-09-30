@@ -38,7 +38,7 @@ class Mixins extends ScriptedModule {
     }
 
     override public function onCreate(event:ScriptEvent) {
-        //Mixins.addConfig("PolyMixin");
+        Mixins.addConfig("PolyMixin");
         if (!loadedConfigs) loadConfigs();
     }
 
@@ -46,9 +46,7 @@ class Mixins extends ScriptedModule {
         if (injected || loadedMixins == null) return;
         for (className in loadedMixins.keys()) {
             var mixin = loadedMixins.get(className);
-            for (target in mixin.targets) {
-                injected = Mixins.applyMixinsForKind(className, target, mixin);
-            }
+            for (target in mixin.targets) injected = Mixins.applyMixinsForKind(className, target, mixin);
         }
     }
 
@@ -86,7 +84,7 @@ class Mixins extends ScriptedModule {
     }
 
     public function loadConfigs() {
-        if (ModStore.get("polyMixinCfgs") == null) return;
+        if (!ModStore.stores.exists("polyMixinCfgs")) return;
         configs = ModStore.get("polyMixinCfgs");
         loadedMixins = new StringMap();
 

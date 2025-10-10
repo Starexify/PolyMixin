@@ -7,7 +7,7 @@
 </p>
 &nbsp;
 <p align="center">
-  <a href="https://starexify.github.io/PolyMixin-Docs/src/">
+  <a href="https://starexify.github.io/BadDocs/src/polymixin.html">
     <img alt="Official Docs" src="https://img.shields.io/badge/official%20documentation-blue?style=for-the-badge">
   </a>
 </p>

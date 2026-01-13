@@ -12,7 +12,7 @@ class AnnotationsMixin extends ScriptedModule {
         trace("Injected into testTwo()");
     }
 
-    /*@:ModifyReturn(method = "testThree", call = testReturnCall)
+    @:ModifyReturn(method = "testThree", call = testReturnCall)
     function testReturn(original:Int) {
         return trace(original + 10);
     }
@@ -46,7 +46,7 @@ class AnnotationsMixin extends ScriptedModule {
 
     public static function setX(newX:Int) {
         trace("X value for AnnotationsMixin set to: " + newX);
-    }*/
+    }
 
 
 /*    @:InjectFunction

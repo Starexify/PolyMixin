@@ -23,6 +23,7 @@ import haxe.ds.StringMap;
 import hscript.Expr;
 import polymod.hscript._internal.PolymodClassDeclEx;
 import polymod.hscript._internal.PolymodScriptClass;
+import funkin.util.AnsiUtil;
 
 using funkin.util.AnsiUtil;
 
@@ -48,7 +49,7 @@ class Mixins extends ScriptedModule {
     }
 
     static function applyMixinsForKind(className:String, target:String, mixin:MixinParam):Bool {
-        trace(" Trying to apply mixins for script " + target + " from mixin class " + className + " with params " + mixin);
+        trace(AnsiUtil.bg_purple(" POLYMIXIN ") + " Trying to apply mixins for script " + target + " from mixin class " + className + " with params " + mixin);
         if (mixin == null || className == null || target == null) return false;
 
         var source = ModuleHandler.getModule(className)._asc;
@@ -71,7 +72,7 @@ class Mixins extends ScriptedModule {
             case MixinKind.NoteKindMixin: MixinAnnotationProcessor.applyNoteKindMixins(source, target);
         }
 
-        trace("Succsessfully applied mixins for script: " + target + " from mixin class " + className + " with params " + mixin);
+        trace(AnsiUtil.bg_purple(" POLYMIXIN ") + " Succsessfully applied mixins for script: " + target + " from mixin class " + className + " with params " + mixin);
         return true;
     }
 

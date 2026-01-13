@@ -3,20 +3,20 @@ import funkin.modding.module.ScriptedModule;
 
 class Annotations extends ScriptedModule {
     override public function onCreate(event:ScriptEvent) {
-        test();
-        testTwo();
-        testThree();
+//        test();
+//        testTwo();
+//        testThree();
         testFour();
-        testFive();
+//        testFive();
 //        newTest();
     }
 
     override public function onStateCreate(event:ScriptEvent) {
-        test();
-        testTwo();
-        testThree();
+//        test();
+//        testTwo();
+//        testThree();
         testFour();
-        testFive();
+//        testFive();
 //        newTest();
     }
 
@@ -24,19 +24,6 @@ class Annotations extends ScriptedModule {
         trace("test() called");
     }
 
-/*    public function testTwo() {
-        if (false) {
-            return trace("Test Return false");
-        } else {
-            if (true) {
-                return trace("Test Return true");
-            }
-        }
-        if (true) {
-            return trace("Test Return false");
-        }
-        return trace("Test Return");
-    }*/
     public function testTwo() {
         trace("test() called");
         doSmth();

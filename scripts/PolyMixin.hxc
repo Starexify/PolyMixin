@@ -2,6 +2,7 @@ import funkin.util.ReflectUtil;
 import hscript.Expr;
 import Lambda;
 import Std;
+import polymod.hscript._internal.PolymodClassDeclEx;
 
 using funkin.util.AnsiUtil;
 
@@ -12,7 +13,7 @@ using funkin.util.AnsiUtil;
 class PolyMixin {
     static var _instance:PolyMixin;
     public static var instance(get, set):PolyMixin;
-    static function set_instance(value:PolyMixin):PolyMixin { return _instance = value; }
+    static function set_instance(val:PolyMixin):PolyMixin { return _instance = val; }
     static function get_instance():PolyMixin { return _instance; }
 
     function new() {
@@ -67,7 +68,11 @@ class PolyMixin {
                 return false;
         }
 
+        var printer = new ASTPrinter();
+        trace(printer);
+        printer.printClass(targetInstance);
         validation.targetFuncs.set(targetFuncName, newFunc);
+        printer.printClass(targetInstance);
         return true;
     }
 

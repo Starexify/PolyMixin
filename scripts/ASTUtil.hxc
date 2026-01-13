@@ -31,7 +31,6 @@ class ASTUtil {
 
     // PolymodClass Getters
     public static function getScriptedModule(id:String):PolymodScriptClass {
-        trace(id);
         if (ModuleHandler.getModule(id) == null) return null;
         return ModuleHandler.getModule(id)._asc;
     }

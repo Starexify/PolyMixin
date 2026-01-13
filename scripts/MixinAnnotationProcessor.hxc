@@ -106,7 +106,7 @@ class MixinAnnotationProcessor {
     }
 
     public static function handleMixins(meta:Metadata, funcName:String, source:Dynamic, target:Dynamic, className:String) {
-        return switch (meta.name) {
+        switch (meta.name) {
             case ":Overwrite":
                 var methodName:String = retrieveParams(meta, ["method"]).method;
                 if (methodName != null) {
@@ -171,8 +171,8 @@ class MixinAnnotationProcessor {
                                             case Const.CInt(i):
                                                 value = i;
                                         }
-                                    case Expr.EIdent(id):
-                                        value = id;
+                                    case Expr.EIdent(paramName2):
+                                        value = paramName2;
                                     case _:
                                         trace("Unhandled RHS for " + paramName + ": " + e2.e);
                                 }

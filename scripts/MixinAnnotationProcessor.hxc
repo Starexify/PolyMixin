@@ -27,7 +27,7 @@ class MixinAnnotationProcessor {
     }
 
     public static function applyModuleMixins(source:Dynamic, className:String) {
-        return applyMixins(source, ASTUtil.instance.getScriptedModule(className));
+        return applyMixins(source, ASTUtil.getScriptedModule(className));
     }
 
     public static function applySongMixins(source:Dynamic, id:String, ?params:SongParams) {
@@ -131,13 +131,13 @@ class MixinAnnotationProcessor {
                 var params:ModifyReturnParams = retrieveParams(meta, ["method", "call"]);
                 if (params.method != null) {
                     trace("Modifying return from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
-                    PolyMixin.modifyByName(target, params.method, source, funcName, params.call, PolyMixin.instance.atFromStr("RETURN"));
+                    PolyMixin.modifyByName(target, params.method, source, funcName, params.call, At.RETURN);
                 } else trace("Warning: method name is null for " + funcName);
             case ":ModifyExpression":
                 var params:ModifyExprParams = retrieveParams(meta, ["method", "target", "ordinal", "call"]);
                 if (params.method != null) {
                     trace("Modifying expression from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
-                    if (params.target != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call, PolyMixin.instance.atFromStr("INVOKE"), params.target, params.ordinal);
+                    if (params.target != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call, At.INVOKE, params.target, params.ordinal);
                     else trace("Warning: target is null for " + funcName);
                 } else trace("Warning: method name is null for " + funcName);
             case ":ModifyReceiver":

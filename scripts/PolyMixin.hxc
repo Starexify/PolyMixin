@@ -4,6 +4,8 @@ import hscript.Expr;
 import Lambda;
 import Std;
 
+using funkin.util.AnsiUtil;
+
 /**
  * Utility module providing methods and functions for injection, overwriting or modifying
  * `PolymodScriptedClass` instances dynamically by manipulating their AST.
@@ -86,7 +88,7 @@ class PolyMixin extends ScriptedModule {
     }
 
     public static function injectByNameStr(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, at:String, ?target:String, ?ordinal:Int, ?shift:String):Bool {
-        return injectByName(targetInstance, targetFuncName, sourceInstance, sourceFuncName, instance.atFromStr(at), target, ordinal, instance.shiftFromStr(shift));
+        return injectByName(targetInstance, targetFuncName, sourceInstance, sourceFuncName, atFromStr(at), target, ordinal, shiftFromStr(shift));
     }
 
     public static function overwrite(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String):Bool {
@@ -225,7 +227,6 @@ class PolyMixin extends ScriptedModule {
                 var exprFound = false;
                 var totalIfCount = 0;
                 var matchingIfCount = 0;
-
                 for (i in 0...targetExprs.length) {
                     switch (targetExprs[i].e) {
                         case Expr.EIf(c, e1, e2):
@@ -246,10 +247,8 @@ class PolyMixin extends ScriptedModule {
                                     var wrappedCondE = wrapExpr(oldExpr, newCall, sourceFuncName, target, ordinal);
                                     targetExprs[i].e = wrappedCondE;
                                     exprFound = true;
-
                                     //trace("Modified matching if statement #" + matchingIfCount + " (total if #" + totalIfCount + ")");
                                 }
-
                                 matchingIfCount++;
                             }
 
@@ -257,7 +256,6 @@ class PolyMixin extends ScriptedModule {
                         default: trace("No if statement found in the function, no mixins were applied!");
                     }
                 }
-
             default:
         }
 
@@ -475,31 +473,13 @@ class PolyMixin extends ScriptedModule {
         }
     }
 
-    public function shiftFromStr(str:String):Shift {
-        return switch (str) {
-            case "BEFORE": Shift.BEFORE;
-            case "AFTER": Shift.AFTER;
-            default: Shift.BEFORE;
-        };
-    }
-
-    public function atFromStr(str:String):At {
-        return switch (str) {
-            case "HEAD": At.HEAD;
-            case "TAIL": At.TAIL;
-            case "INVOKE": At.INVOKE;
-            case "RETURN": At.RETURN;
-            default: At.HEAD;
-        };
-    }
-
     static function validateInstances(targetInstance:Dynamic, sourceInstance:Dynamic, targetFuncName:String, sourceFuncName:String):Null<ValidationDef> {
         var targetFuncs = ASTUtil.getFuncCache(targetInstance);
         var sourceFuncs = ASTUtil.getFuncCache(sourceInstance);
 
-        if (targetFuncs == null) trace("Failed to get function from target");
+        if (targetFuncs == null) trace(" Failed to get function from target instance " + targetInstance);
         if (targetFuncs == null || sourceFuncs == null) {
-            trace("Failed to get function caches");
+            trace(" Failed to get function caches.");
             return null;
         }
 
@@ -507,7 +487,7 @@ class PolyMixin extends ScriptedModule {
         var sourceFunc = sourceFuncs.get(sourceFuncName);
 
         if (targetFunc == null) {
-            trace("Target function " + targetFuncName + " not found");
+            trace(" Target function " + targetFuncName + " not found");
             return null;
         }
 
@@ -517,6 +497,24 @@ class PolyMixin extends ScriptedModule {
         }
 
         return {targetFuncs: targetFuncs, sourceFuncs: sourceFuncs, targetFunc: targetFunc, sourceFunc: sourceFunc};
+    }
+
+    public static function atFromStr(str:String):At {
+        return switch (str) {
+            case "HEAD": At.HEAD;
+            case "TAIL": At.TAIL;
+            case "INVOKE": At.INVOKE;
+            case "RETURN": At.RETURN;
+            default: At.HEAD;
+        };
+    }
+
+    public static function shiftFromStr(str:String):Shift {
+        return switch (str) {
+            case "BEFORE": Shift.BEFORE;
+            case "AFTER": Shift.AFTER;
+            default: Shift.BEFORE;
+        };
     }
 }
 

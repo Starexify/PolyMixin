@@ -24,6 +24,8 @@ import hscript.Expr;
 import polymod.hscript._internal.PolymodClassDeclEx;
 import polymod.hscript._internal.PolymodScriptClass;
 
+using funkin.util.AnsiUtil;
+
 class Mixins extends ScriptedModule {
     var injected:Bool = false;
     var loadedConfigs:Bool = false;
@@ -31,18 +33,13 @@ class Mixins extends ScriptedModule {
     static var loadedMixins:StringMap<MixinParam> = new StringMap();
 
     public function new() {
-        super("Mixins");
-
-        new ASTUtil();
-        if (!loadedConfigs) loadConfigs();
+        super("Mixins", Math.NEGATIVE_INFINITY);
     }
 
     override public function onCreate(event:ScriptEvent) {
         Mixins.addConfig("PolyMixin");
         if (!loadedConfigs) loadConfigs();
-    }
 
-    override public function onUpdate(event:UpdateScriptEvent) {
         if (injected || loadedMixins == null) return;
         for (className in loadedMixins.keys()) {
             var mixin = loadedMixins.get(className);
@@ -51,7 +48,7 @@ class Mixins extends ScriptedModule {
     }
 
     static function applyMixinsForKind(className:String, target:String, mixin:MixinParam):Bool {
-        trace("Trying to apply mixins for script " + target + " from mixin class " + className + " with params " + mixin);
+        trace(" Trying to apply mixins for script " + target + " from mixin class " + className + " with params " + mixin);
         if (mixin == null || className == null || target == null) return false;
 
         var source = ModuleHandler.getModule(className)._asc;
@@ -84,6 +81,7 @@ class Mixins extends ScriptedModule {
     }
 
     public function loadConfigs() {
+        trace(" POLYMIXIN ".bg_purple() + " Loading mixin configs.");
         if (!ModStore.stores.exists("polyMixinCfgs")) return;
         configs = ModStore.get("polyMixinCfgs");
         loadedMixins = new StringMap();

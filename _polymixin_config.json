@@ -1,0 +1,5 @@
+{
+  "mixins": [
+    { "className": "AnnotationsMixin", "kind": "Mixin" }
+  ]
+}

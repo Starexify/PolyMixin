@@ -1,0 +1,31 @@
+import funkin.modding.events.ScriptEvent;
+import funkin.modding.module.ScriptedModule;
+
+class ShinaneganTwo extends ScriptedModule {
+    /**
+     * Calling a static function after another static function, will always set argument to null for that function when called.
+     * Also setting a variable with the same name as the next function's argument, will error.
+     *
+     * If `id` is changed to a diff name for the switch (expr) or testFuncTwo argument, it will work again
+     */
+    override public function onCreate(event:ScriptEvent) {
+        testFunc(testFuncTwo("ID"));
+        testFuncTwo("ID");
+    }
+
+    public static function testFunc(source:Dynamic) {
+        trace(source);
+        var expr = Expr.EIdent("test");
+        switch (expr) {
+            case Expr.EIdent(id):
+                trace(id);
+        }
+        var id;
+    }
+
+    public static function testFuncTwo(id:String) {
+        trace(id);
+    }
+}
+
+enum Expr { EIdent(v:String); }

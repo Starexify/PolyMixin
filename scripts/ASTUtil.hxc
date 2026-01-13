@@ -1,5 +1,4 @@
 import funkin.modding.module.ModuleHandler;
-import funkin.util.ReflectUtil;
 import hscript.Expr;
 import polymod.hscript._internal.PolymodScriptClass;
 
@@ -14,25 +13,9 @@ class ASTUtil {
         ASTUtil.instance = this;
     }
 
-    public static function getFuncCache(instance:Dynamic):Map<String, FunctionDecl> {
-        return ReflectUtil.getField(instance, "_cachedFunctionDecls");
-    }
-
-    public static function getFields(instance:Dynamic):FieldCache {
-        return {
-            fields: ReflectUtil.getField(instance, "_c").fields,
-            cached: ReflectUtil.getField(instance, "_cachedFieldDecls")
-        };
-    }
-
     // PolymodClass Getters
     public function getScriptedModule(name:String):PolymodScriptClass {
         if (ModuleHandler.getModule(name) == null) return null;
         return ModuleHandler.getModule(name)._asc;
     }
-}
-
-typedef FieldCache = {
-    var fields:Array<FieldDecl>;
-    var cached:Map<String, FieldDecl>;
 }

@@ -47,11 +47,8 @@ class MixinAnnotationProcessor {
     }
 
     public static function handleMixins(meta:Metadata, funcName:String, source:Dynamic, target:Dynamic, className:String) {
-        switch (meta.name) {
-            case ":Overwrite":
-                var methodName:String = retrieveParams(meta, ["method"]).method;
-                trace(methodName);
-        }
+        var methodName:String = retrieveParams(meta, ["method"]).method;
+        trace(methodName);
     }
 
     public static function retrieveParams(meta:Metadata, ?allowed:Array<String>):Dynamic {
@@ -61,8 +58,10 @@ class MixinAnnotationProcessor {
                 case Expr.EBinop(_, e1, e2):
                     switch (e1.e) {
                         case Expr.EIdent(paramName):
-                            if (allowed == null || allowed.indexOf(paramName) != -1) {
+                            // This crashes it somehow
+                            /*if (allowed == null || allowed.contains(paramName)) {
                                 var value:Dynamic = null;
+
 
                                 switch (e2.e) {
                                     case Expr.EConst(c):
@@ -78,8 +77,9 @@ class MixinAnnotationProcessor {
                                         trace("Unhandled RHS for " + paramName + ": " + e2.e);
                                 }
 
-                                ReflectUtil.setField(result, paramName, value);
+                                //ReflectUtil.setField(result, paramName, value);
                             }
+                            */
                     }
             }
         }

@@ -1,5 +1,4 @@
 import funkin.modding.module.ModuleHandler;
-import hscript.Expr;
 import polymod.hscript._internal.PolymodScriptClass;
 
 class ASTUtil {

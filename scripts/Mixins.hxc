@@ -1,9 +1,9 @@
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ModuleHandler;
 import funkin.modding.module.ScriptedModule;
-import polymod.hscript._internal.PolymodClassDeclEx;
-import hscript.Expr;
 import funkin.util.ReflectUtil;
+import hscript.Expr;
+import polymod.hscript._internal.PolymodClassDeclEx;
 
 class Mixins extends ScriptedModule {
     public function new() {
@@ -16,26 +16,20 @@ class Mixins extends ScriptedModule {
         applyMixins(ModuleHandler.getModule("Mixins")._asc);
     }
 
-    public static function applyMixins(source:Dynamic):Bool {
+    public static function applyMixins(source:Dynamic) {
+        var allowed = ["method"];
         var _c:PolymodClassDeclEx = ReflectUtil.getField(source, "_c");
         if (_c.fields == null) return false;
-        for (field in _c.fields) {
-            for (meta in field.meta) {
-                var allowed = ["method"];
-                for (param in meta.params) {
-                    switch (param.e) {
-                        case Expr.EBinop(_, e1, e2):
-                            switch (e1.e) {
-                                case Expr.EIdent(paramName):
-                                    if (allowed == null || allowed.contains(paramName)) {
-                                        var value:Dynamic = null;
-                                    }
-                            }
-                    }
+        var param = _c.fields[2].meta[0].params[0];
+        switch (param.e) {
+            case Expr.EBinop(_, e1, e2):
+                switch (e1.e) {
+                    case Expr.EIdent(paramName):
+                        if (allowed == null || allowed.contains(paramName)) {
+                            var value:Dynamic = null;
+                        }
                 }
-            }
         }
-        return true;
     }
 
     @:Overwrite(method = "test")

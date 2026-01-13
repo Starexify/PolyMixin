@@ -1,6 +1,3 @@
-import funkin.modding.module.ModuleHandler;
-import polymod.hscript._internal.PolymodScriptClass;
-
 class ASTUtil {
     // instancing bs because for some reason polymod forgets values if they're static functions and hot reloading from Funkin
     static var _instance:ASTUtil;
@@ -10,11 +7,5 @@ class ASTUtil {
 
     function new() {
         ASTUtil.instance = this;
-    }
-
-    // PolymodClass Getters
-    public function getScriptedModule(name:String):PolymodScriptClass {
-        if (ModuleHandler.getModule(name) == null) return null;
-        return ModuleHandler.getModule(name)._asc;
     }
 }

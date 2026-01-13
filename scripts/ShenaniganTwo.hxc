@@ -1,7 +1,7 @@
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
 
-class ShinaneganTwo extends ScriptedModule {
+class ShenaniganTwo extends ScriptedModule {
     /**
      * Calling a static function after another static function, will always set argument to null for that function when called.
      * Also setting a variable with the same name as the next function's argument, will error.

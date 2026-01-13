@@ -1,16 +1,16 @@
 import funkin.modding.events.ScriptEvent;
 import funkin.modding.module.ScriptedModule;
 
-class ShinaneganOne extends ScriptedModule {
+class ShenaniganOne extends ScriptedModule {
     /**
      * Calling a setter and static function crashes the game
      *
      * If `value` is changed to a diff name for the variable or argument it will work again
      */
-    static var _instance:ShinaneganOne;
-    public static var instance(get, set):ShinaneganOne;
-    static function set_instance(value:ShinaneganOne):ShinaneganOne { return _instance = value; }
-    static function get_instance():ShinaneganOne { return _instance; }
+    static var _instance:ShenaniganOne;
+    public static var instance(get, set):ShenaniganOne;
+    static function set_instance(value:ShenaniganOne):ShenaniganOne { return _instance = value; }
+    static function get_instance():ShenaniganOne { return _instance; }
 
     public static function testFunc() {
         var value;
@@ -18,6 +18,6 @@ class ShinaneganOne extends ScriptedModule {
 
     override public function onCreate(event:ScriptEvent) {
         testFunc();
-        ShinaneganOne.instance = this;
+        ShenaniganOne.instance = this;
     }
 }

@@ -1,9 +1,0 @@
-import funkin.modding.module.ScriptedModule;
-
-@:Mixin(Annotations)
-class AnnotationsMixin extends ScriptedModule {
-    @:Overwrite(method = "test")
-    function testOverwrite() {
-        trace("Overwrote test()");
-    }
-}

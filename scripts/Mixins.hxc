@@ -14,14 +14,15 @@ class Mixins extends ScriptedModule {
     override public function onCreate(event:ScriptEvent) {
         new ASTUtil();
 
-        applyMixins(ModuleHandler.getModule("AnnotationsMixin")._asc, ModuleHandler.getModule("Annotations")._asc);
+        applyMixins(ModuleHandler.getModule("Mixins")._asc);
     }
 
-    public static function applyMixins(source:Dynamic, target:Dynamic):Bool {
+    public static function applyMixins(source:Dynamic):Bool {
         var _c:PolymodClassDeclEx = ReflectUtil.getField(source, "_c");
         if (_c.fields == null) return false;
         for (field in _c.fields) {
             for (meta in field.meta) {
+                trace(meta);
                 var method = retrieveParams(meta, ["method"]).method;
                 trace(method);
             }
@@ -44,4 +45,7 @@ class Mixins extends ScriptedModule {
         }
         return result;
     }
+
+    @:Overwrite(method = "test")
+    function testOverwrite() {}
 }

@@ -13,6 +13,6 @@ class Test extends ScriptedModule {
     }
 
     public static function applyMixins() {
-        if (true) var value:Dynamic = null;
+        var value;
     }
 }

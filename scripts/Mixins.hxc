@@ -39,7 +39,6 @@ class Mixins extends ScriptedModule {
     override public function onCreate(event:ScriptEvent) {
         Mixins.addConfig("PolyMixin");
         if (!loadedConfigs) loadConfigs();
-        new ASTUtil();
 
         if (injected || loadedMixins == null) return;
         for (className in loadedMixins.keys()) {

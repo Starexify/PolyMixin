@@ -4,7 +4,6 @@ import funkin.modding.module.ScriptedModule;
 import polymod.hscript._internal.PolymodClassDeclEx;
 import hscript.Expr;
 import funkin.util.ReflectUtil;
-import hscript.Expr.Metadata;
 
 class Mixins extends ScriptedModule {
     public function new() {
@@ -22,28 +21,21 @@ class Mixins extends ScriptedModule {
         if (_c.fields == null) return false;
         for (field in _c.fields) {
             for (meta in field.meta) {
-                trace(meta);
-                var method = retrieveParams(meta, ["method"]).method;
-                trace(method);
+                var allowed = ["method"];
+                for (param in meta.params) {
+                    switch (param.e) {
+                        case Expr.EBinop(_, e1, e2):
+                            switch (e1.e) {
+                                case Expr.EIdent(paramName):
+                                    if (allowed == null || allowed.contains(paramName)) {
+                                        var value:Dynamic = null;
+                                    }
+                            }
+                    }
+                }
             }
         }
         return true;
-    }
-
-    public static function retrieveParams(meta:Metadata, ?allowed:Array<String>):Dynamic {
-        var result:Dynamic = {};
-        for (param in meta.params) {
-            switch (param.e) {
-                case Expr.EBinop(_, e1, e2):
-                    switch (e1.e) {
-                        case Expr.EIdent(paramName):
-                            if (allowed == null || allowed.contains(paramName)) {
-                                var value:Dynamic = null;
-                            }
-                    }
-            }
-        }
-        return result;
     }
 
     @:Overwrite(method = "test")

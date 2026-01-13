@@ -6,12 +6,17 @@ import hscript.Expr;
 import polymod.hscript._internal.PolymodClassDeclEx;
 
 class Mixins extends ScriptedModule {
+    static var _instance:Mixins;
+    public static var instance(get, set):Mixins;
+    static function set_instance(value:Mixins):Mixins { return _instance = value; }
+    static function get_instance():Mixins { return _instance; }
+
     public function new() {
         super("Mixins", Math.NEGATIVE_INFINITY);
     }
 
     override public function onCreate(event:ScriptEvent) {
-        new ASTUtil();
+        Mixins.instance = this;
 
         applyMixins(ModuleHandler.getModule("Mixins")._asc);
     }

@@ -6,8 +6,6 @@ import hscript.Expr;
 import funkin.util.ReflectUtil;
 import hscript.Expr.Metadata;
 
-using funkin.util.AnsiUtil;
-
 class Mixins extends ScriptedModule {
     public function new() {
         super("Mixins", Math.NEGATIVE_INFINITY);

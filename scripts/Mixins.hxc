@@ -50,7 +50,7 @@ class Mixins extends ScriptedModule {
     }
 
     static function applyMixinsForKind(className:String, target:String, mixin:MixinParam):Bool {
-        trace(AnsiUtil.bg_purple(" POLYMIXIN ") + " Trying to apply mixins for script " + target + " from mixin class " + className + " with params " + mixin);
+        PolymodLogger.log("Trying to apply mixins for script " + target + " from mixin class " + className + " with params " + mixin);
         if (mixin == null || className == null || target == null) return false;
 
         var source = ModuleHandler.getModule(className)._asc;
@@ -73,7 +73,7 @@ class Mixins extends ScriptedModule {
             case MixinKind.NoteKindMixin: MixinAnnotationProcessor.applyNoteKindMixins(source, target);
         }
 
-        trace(AnsiUtil.bg_purple(" POLYMIXIN ") + " Succsessfully applied mixins for script: " + target + " from mixin class " + className + " with params " + mixin);
+        PolymodLogger.log("Succsessfully applied mixins for script: " + target + " from mixin class " + className + " with params " + mixin);
         return true;
     }
 
@@ -83,7 +83,7 @@ class Mixins extends ScriptedModule {
     }
 
     public function loadConfigs() {
-        trace(" POLYMIXIN ".bg_purple() + " Loading mixin configs.");
+        PolymodLogger.log("Loading mixin configs.");
         if (!ModStore.stores.exists("polyMixinCfgs")) return;
         configs = ModStore.get("polyMixinCfgs");
         loadedMixins = new StringMap();
@@ -103,7 +103,7 @@ class Mixins extends ScriptedModule {
                     mixinParam = retrieveParams(entry);
                     if (mixinParam != null) loadedMixins.set(entry, mixinParam);
                 }
-                if (mixinParam == null) trace("Failed to retrieve parameters from mixin class: " + entry + " with source path " + path + ". Please provide an actual mixin class.");
+                if (mixinParam == null) PolymodLogger.error("Failed to retrieve parameters from mixin class: " + entry + " with source path " + path + ". Please provide an actual mixin class.");
             }
         }
 
@@ -131,7 +131,7 @@ class Mixins extends ScriptedModule {
                                 }
                             }
                     }
-                default: trace("Unhandled param in class " + className + ": " + param.e);
+                default: PolymodLogger.error("Unhandled param in class " + className + ": " + param.e);
             }
         }
         if (params != null && result.variation == null) result.variation = params.variation;
@@ -200,7 +200,7 @@ class Mixins extends ScriptedModule {
         } catch (e:Dynamic) {}
 
         if (cls == null) {
-            //trace("No scripted class found for: " + name);
+            //PolymodLogger.error("No scripted class found for: " + name);
             return null;
         }
 

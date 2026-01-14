@@ -1,8 +1,8 @@
 import funkin.util.ReflectUtil;
 import haxe.ds.StringMap;
 import hscript.Expr;
-import Lambda;
 import polymod.hscript._internal.PolymodClassDeclEx;
+import Lambda;
 import Std;
 import StringBuf;
 
@@ -15,7 +15,7 @@ class ASTPrinter {
     public static var tab = "    ";
     public static var wrapCalls:Bool = false;
 
-    public function printClass(instance) {
+    public function printClass(instance):String {
         var funcDecls:StringMap<FunctionDecl> = new StringMap();
         var funcMetas:StringMap<Metadata> = new StringMap();
         var varDecls:StringMap<FieldDecl> = new StringMap();
@@ -101,7 +101,7 @@ class ASTPrinter {
 
         result += "class " + clazz.name;
 
-        // Addd extend
+        // Add extend
         if (clazz.extend != null) {
             var oldBuf = buf;
             buf = new StringBuf();
@@ -219,7 +219,7 @@ class ASTPrinter {
         var funcBody = exprToString(funcDecl.expr);
         funcString += " " + funcBody;
 
-        trace(funcString);
+        //trace(funcString);
         return funcString;
     }
 

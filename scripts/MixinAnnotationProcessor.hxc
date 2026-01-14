@@ -16,7 +16,7 @@ class MixinAnnotationProcessor {
         var _c:PolymodClassDeclEx = ReflectUtil.getField(source, "_c");
 
         if (_c == null) {
-            trace("No class definition found.");
+            PolymodLogger.error("No class definition found.");
             return false;
         }
 
@@ -110,45 +110,45 @@ class MixinAnnotationProcessor {
             case ":Overwrite":
                 var methodName:String = retrieveParams(meta, ["method"]).method;
                 if (methodName != null) {
-                    trace("Overwriting method " + methodName + "() with " + funcName + "() from class " + className);
+                    PolymodLogger.log("Overwriting method " + methodName + "() with " + funcName + "() from class " + className);
                     PolyMixin.overwrite(target, methodName, source, funcName);
-                } else trace("Warning: method name is null for " + funcName);
+                } else PolymodLogger.warn("method name is null for " + funcName);
             case ":Inject":
                 var params:InjectionParams = retrieveParams(meta, ["method", "at", "target", "ordinal", "shift"]);
                 if (params.method != null) {
-                    trace("Injecting into method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    PolymodLogger.log("Injecting into method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     switch (params.at) {
                         case "INVOKE":
                             if (params.target != null) PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at, params.target, params.ordinal, params.shift);
-                            else trace("Warning: target is null for " + funcName);
+                            else PolymodLogger.warn("target is null for " + funcName);
                         case "RETURN":
                             PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at, null, params.ordinal);
                         default:
                             PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at);
                     }
-                } else trace("Warning: method name is null for " + funcName);
+                } else PolymodLogger.warn("method name is null for " + funcName);
             case ":ModifyReturn":
                 var params:ModifyReturnParams = retrieveParams(meta, ["method", "call"]);
                 if (params.method != null) {
-                    trace("Modifying return from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    PolymodLogger.log("Modifying return from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     PolyMixin.modifyByName(target, params.method, source, funcName, params.call, At.RETURN);
-                } else trace("Warning: method name is null for " + funcName);
+                } else PolymodLogger.warn("method name is null for " + funcName);
             case ":ModifyExpression":
                 var params:ModifyExprParams = retrieveParams(meta, ["method", "target", "ordinal", "call"]);
                 if (params.method != null) {
-                    trace("Modifying expression from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    PolymodLogger.log("Modifying expression from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     if (params.target != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call, At.INVOKE, params.target, params.ordinal);
-                    else trace("Warning: target is null for " + funcName);
-                } else trace("Warning: method name is null for " + funcName);
+                    else PolymodLogger.warn("target is null for " + funcName);
+                } else PolymodLogger.warn("method name is null for " + funcName);
             case ":ModifyReceiver":
                 var params:ModifyExprParams = retrieveParams(meta, ["method", "target", "ordinal", "call"]);
                 if (params.method != null) {
-                    trace("Modifying receiver from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    PolymodLogger.log("Modifying receiver from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
                     if (params.target != null) PolyMixin.modifyRecByName(target, params.method, source, funcName, params.call, null, params.target, params.ordinal);
-                    else trace("Warning: target is null for " + funcName);
-                } else trace("Warning: method name is null for " + funcName);
+                    else PolymodLogger.warn("target is null for " + funcName);
+                } else PolymodLogger.warn("method name is null for " + funcName);
             case ":InjectFunction":
-                trace("Injecting function " + funcName + "() from class " + className);
+                PolymodLogger.log("Injecting function " + funcName + "() from class " + className);
                 PolyMixin.injectFunction(target, source, funcName);
         }
     }
@@ -174,7 +174,7 @@ class MixinAnnotationProcessor {
                                     case Expr.EIdent(paramName2):
                                         value = paramName2;
                                     case _:
-                                        trace("Unhandled RHS for " + paramName + ": " + e2.e);
+                                        PolymodLogger.warn("Unhandled RHS for " + paramName + ": " + e2.e);
                                 }
 
                                 ReflectUtil.setField(result, paramName, value);

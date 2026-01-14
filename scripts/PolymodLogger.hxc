@@ -1,0 +1,19 @@
+import funkin.util.AnsiUtil;
+
+class PolymodLogger {
+  public static function error(string:String) {
+    trace(AnsiUtil.error(" POLYMOD ERROR ") + " " + string);
+  }
+
+  public static function warn(string:String) {
+    trace(AnsiUtil.warning(" POLYMOD WARN ") + " " + string);
+  }
+
+  public static function info(string:String) {
+    trace(AnsiUtil.info(" POLYMOD INFO ") + " " + string);
+  }
+
+  public static function log(string:String) {
+    trace(AnsiUtil.bg_purple(" POLYMOD ") + " " + string);
+  }
+}

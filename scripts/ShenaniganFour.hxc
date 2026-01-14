@@ -3,13 +3,13 @@ import funkin.modding.events.ScriptEvent;
 
 class ShenaniganFour extends ScriptedModule {
   override public function onCreate(event:ScriptEvent) {
-    var myStructure:User = {x: 12, name: "foo"};
-    trace(myStructure);
+    //var myStructure:User = {x: 12, name: "foo"};
+    //trace(myStructure);
   }
 }
 
-typedef User = {
+/*typedef User = {
   x : Int,
   name : String,
   ?phoneNumber : String
-}
+}*/

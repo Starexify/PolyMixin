@@ -1,0 +1,8 @@
+import funkin.modding.module.ScriptedModule;
+import funkin.modding.events.ScriptEvent;
+
+class Test extends ScriptedModule {
+  override public function onCreate(event:ScriptEvent) {
+
+  }
+}

@@ -116,7 +116,7 @@ class Mixins extends ScriptedModule {
 
         var mixinKind:MixinKind = kindFromStr(":" + kind) ?? kindFromStr(meta.name);
 
-        var result:MixinParam = { targets: [], kind: mixinKind};
+        var result:MixinParam = {targets: [], kind: mixinKind};
         if (result.kind == null) return null;
 
         for (param in meta.params) {
@@ -246,7 +246,11 @@ enum MixinKind {
     NoteKindMixin;
 }
 
-typedef MixinParam = {targets:Array<String>, kind:MixinKind, variation:String}
+typedef MixinParam = {
+    var targets:Array<String>;
+    var kind:MixinKind;
+    @:optional var variation:String;
+}
 
 typedef MixinConfig = {mixins:Array<MixinConfigKinds>}
 typedef MixinConfigKinds = {className:String, kind:String, params:SongParams}

@@ -39,6 +39,7 @@ class Mixins extends ScriptedModule {
 
     override public function onCreate(event:ScriptEvent) {
         new PolyMixin();
+        new ASTPrinter();
         Mixins.addConfig("PolyMixin");
         if (!loadedConfigs) loadConfigs();
 

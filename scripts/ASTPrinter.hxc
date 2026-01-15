@@ -12,8 +12,21 @@ class ASTPrinter {
 
     // can be changed if needed
     public static var spacer = "\n";
-    public static var tab = "    ";
+    public static var tab = "  ";
     public static var wrapCalls:Bool = false;
+
+    function new(instance) {
+        var str = printClass(this);
+        trace(str);
+    }
+
+    function test(a:Int, foo:String = "foo", test:Expr):Void {
+        trace(a, foo);
+    }
+
+    function testTwo(a:Int, foo:String):Void {
+        trace(a, foo);
+    }
 
     public function printClass(instance):String {
         var funcDecls:StringMap<FunctionDecl> = new StringMap();
@@ -188,7 +201,6 @@ class ASTPrinter {
         }
 
         funcString += "function " + name + "(";
-
         var paramStrings = [];
         for (arg in funcDecl.args) {
             var paramStr = "";
@@ -201,6 +213,10 @@ class ASTPrinter {
                 type(arg.t);
                 paramStr += buf.toString();
                 buf = oldBuf;
+            }
+            if (arg.value != null) {
+                paramStr += " = ";
+                paramStr += exprToString(arg.value);
             }
             paramStrings.push(paramStr);
         }
@@ -219,7 +235,6 @@ class ASTPrinter {
         var funcBody = exprToString(funcDecl.expr);
         funcString += " " + funcBody;
 
-        //trace(funcString);
         return funcString;
     }
 

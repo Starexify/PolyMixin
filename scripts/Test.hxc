@@ -2,11 +2,7 @@ import funkin.modding.module.ScriptedModule;
 import funkin.modding.events.ScriptEvent;
 
 class Test extends ScriptedModule {
-  static function test(a:Int, ?b:String = "foo"):Void {
-    trace(a, b);
-  }
-
   override public function onCreate(event:ScriptEvent) {
-    test(1);
+
   }
 }

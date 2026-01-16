@@ -1,0 +1,106 @@
+import funkin.modding.module.ScriptedModule;
+import funkin.modding.events.ScriptEvent;
+import funkin.util.AnsiUtil;
+
+using funkin.util.AnsiUtil;
+
+class PolyTest extends ScriptedModule {
+  @:isVar var getSet(get, set):Int = 10;
+  function set_getSet(value:Int):Int {
+    return getSet = value;
+  }
+  function get_getSet():Int {
+    return getSet;
+  }
+
+  var getNever(get, never):Int;
+  function get_getNever():Int {
+    return 100;
+  }
+
+  var neverSet(never, set):Int;
+  function set_neverSet(value:Int):Int {
+    return this.neverSet = value;
+  }
+
+  var neverNever(never, never):Int;
+
+  var defaults(default, default):Int;
+  function get_defaults():Int {
+    return defaults;
+  }
+
+  var getNull(get, null):Int;
+  function get_getNull():Int {
+    return getNull;
+  }
+
+
+  override public function onCreate(event:ScriptEvent) {
+    // Testing getters/setters
+    testGetSet();
+
+    // Testing functions
+    testFuncs();
+  }
+
+  function testGetSet() {
+    trace("getSet: " + getSet);
+    getSet = 1;
+    trace("getSet: " + getSet);
+
+    trace("getNever: " + getNever);
+    getNever = 1;
+    trace("getNever: " + getNever);
+
+    trace("neverSet: " + neverSet);
+    neverSet = 1;
+    trace("neverSet: " + neverSet);
+
+    trace("neverNever: " + neverNever);
+    neverNever = 1;
+    trace("neverNever: " + neverNever);
+
+    trace("defaults: " + defaults);
+    defaults = 1;
+    trace("defaults: " + defaults);
+  }
+
+  function testFuncs() {
+    // Testing static functions
+    testStaticFunc();
+    testStaticFunc(11);
+    trace(testStaticFunc());
+    var a = testFunc();
+    trace(a);
+
+    // Testing functions
+    testFunc();
+    testFunc(11);
+    trace(testFunc());
+    var b = testFunc();
+    trace(b);
+  }
+
+  function testFunc(a:Int = 10):Int {
+    a += 10;
+
+    trace(a);
+    trace("testFunc");
+    trace("testFunc using".bg_purple());
+    trace(AnsiUtil.bg_purple("testFunc"));
+
+    return a;
+  }
+
+  static function testStaticFunc(a:Int = 10):Int {
+    a += 10;
+
+    trace(a);
+    trace("testStaticFunc");
+    trace("testStaticFunc using".bg_purple());
+    trace(AnsiUtil.bg_purple("testStaticFunc"));
+
+    return a;
+  }
+}

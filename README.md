@@ -10,8 +10,10 @@
   <a href="https://starexify.github.io/BadDocs/src/polymixin.html">
     <img alt="Official Docs" src="https://img.shields.io/badge/official%20documentation-blue?style=for-the-badge">
   </a>
+  <a href="https://discord.gg/XTg9MtcRBs">
+    <img alt="PolyMixin Discord" src="https://img.shields.io/discord/1471194861079105779?style=for-the-badge&label=DISCORD&labelColor=%238425d4&color=%23cbcf0e">
+  </a>
 </p>
-
 
 ## What is PolyMixin ?
 **PolyMixin** is a **framework and API** for V-Slice mods, built on [AST](https://en.wikipedia.org/wiki/Abstract_syntax_tree) manipulation.

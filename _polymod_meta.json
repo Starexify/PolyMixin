@@ -1,5 +1,5 @@
 {
-  "title": "PolyMixins",
+  "title": "PolyMixin",
   "description": "A runtime AST mixin framework for modifying scripted classes in V-Slice mods.",
   "contributors": [
     {

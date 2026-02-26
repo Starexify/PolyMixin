@@ -15,17 +15,12 @@ import funkin.modding.ModStore;
 import funkin.modding.module.ModuleHandler;
 import funkin.modding.module.ScriptedModule;
 import funkin.play.notes.notekind.NoteKindManager;
-import funkin.play.song.Song.SongParams;
 import funkin.util.FileUtilSandboxed;
 import funkin.util.ReflectUtil;
 import haxe.ds.ObjectMap;
 import haxe.ds.StringMap;
-import hscript.Expr;
-import polymod.hscript._internal.PolymodClassDeclEx;
+import polymod.hscript._internal.Expr;
 import polymod.hscript._internal.PolymodScriptClass;
-import funkin.util.AnsiUtil;
-
-using funkin.util.AnsiUtil;
 
 class Mixins extends ScriptedModule {
     var injected:Bool = false;
@@ -34,7 +29,7 @@ class Mixins extends ScriptedModule {
     static var loadedMixins:StringMap<MixinParam> = new StringMap();
 
     public function new() {
-        super("Mixins", Math.NEGATIVE_INFINITY);
+        super("Mixins", -2147482647); // Min Priority is (1 << 31) | 0x3E9
     }
 
     override public function onCreate(event:ScriptEvent) {
@@ -50,7 +45,7 @@ class Mixins extends ScriptedModule {
     }
 
     static function applyMixinsForKind(className:String, target:String, mixin:MixinParam):Bool {
-        PolymodLogger.log("Trying to apply mixins for script " + target + " from mixin class " + className + " with params " + mixin);
+        PolymodLogger.log('Trying to apply mixins for script $target from mixin class $className with params $mixin');
         if (mixin == null || className == null || target == null) return false;
 
         var source = ModuleHandler.getModule(className)._asc;
@@ -73,7 +68,7 @@ class Mixins extends ScriptedModule {
             case MixinKind.NoteKindMixin: MixinAnnotationProcessor.applyNoteKindMixins(source, target);
         }
 
-        PolymodLogger.log("Succsessfully applied mixins for script: " + target + " from mixin class " + className + " with params " + mixin);
+        PolymodLogger.log('Succsessfully applied mixins for script: $target from mixin class $className with params $mixin');
         return true;
     }
 
@@ -83,7 +78,7 @@ class Mixins extends ScriptedModule {
     }
 
     public function loadConfigs() {
-        PolymodLogger.log("Loading mixin configs.");
+        PolymodLogger.log('Loading mixin configs.');
         if (!ModStore.stores.exists("polyMixinCfgs")) return;
         configs = ModStore.get("polyMixinCfgs");
         loadedMixins = new StringMap();
@@ -103,7 +98,7 @@ class Mixins extends ScriptedModule {
                     mixinParam = retrieveParams(entry);
                     if (mixinParam != null) loadedMixins.set(entry, mixinParam);
                 }
-                if (mixinParam == null) PolymodLogger.error("Failed to retrieve parameters from mixin class: " + entry + " with source path " + path + ". Please provide an actual mixin class.");
+                if (mixinParam == null) PolymodLogger.error('Failed to retrieve parameters from mixin class: $entry with source path $path. Please provide an actual mixin class.');
             }
         }
 
@@ -131,7 +126,7 @@ class Mixins extends ScriptedModule {
                                 }
                             }
                     }
-                default: PolymodLogger.error("Unhandled param in class " + className + ": " + param.e);
+                default: PolymodLogger.error('Unhandled param in class ${className}: ${param.e}');
             }
         }
         if (params != null && result.variation == null) result.variation = params.variation;
@@ -141,7 +136,7 @@ class Mixins extends ScriptedModule {
 
     function getMetadata(name:String, ?songParams:SongParams):Metadata {
         var cls:PolymodScriptClass = null;
-        var _c:PolymodClassDeclEx = null;
+        var _c:ClassDecl = null;
 
         try {
             cls = ModuleHandler.getModule(name)._asc;
@@ -246,11 +241,7 @@ enum MixinKind {
     NoteKindMixin;
 }
 
-typedef MixinParam = {
-    var targets:Array<String>;
-    var kind:MixinKind;
-    @:optional var variation:String;
-}
+typedef MixinParam = {targets:Array<String>, kind:MixinKind, ?variation:String}
 
 typedef MixinConfig = {mixins:Array<MixinConfigKinds>}
 typedef MixinConfigKinds = {className:String, kind:String, params:SongParams}

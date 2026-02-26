@@ -1,7 +1,6 @@
 import funkin.util.ReflectUtil;
 import haxe.ds.StringMap;
-import hscript.Expr;
-import polymod.hscript._internal.PolymodClassDeclEx;
+import polymod.hscript._internal.Expr;
 import Lambda;
 import Std;
 import StringBuf;
@@ -15,25 +14,12 @@ class ASTPrinter {
     public static var tab = "  ";
     public static var wrapCalls:Bool = false;
 
-    function new(instance) {
-        var str = printClass(this);
-        trace(str);
-    }
-
-    function test(a:Int, foo:String = "foo", test:Expr):Void {
-        trace(a, foo);
-    }
-
-    function testTwo(a:Int, foo:String):Void {
-        trace(a, foo);
-    }
-
     public function printClass(instance):String {
         var funcDecls:StringMap<FunctionDecl> = new StringMap();
         var funcMetas:StringMap<Metadata> = new StringMap();
         var varDecls:StringMap<FieldDecl> = new StringMap();
 
-        var clazz:PolymodClassDeclEx = ReflectUtil.field(instance, "_c");
+        var clazz:ClassDecl = ReflectUtil.field(instance, "_c");
 
         for (field in clazz.fields) {
             switch (field.kind) {
@@ -71,14 +57,14 @@ class ASTPrinter {
         return result;
     }
 
-    public function formatPackage(clazz:PolymodClassDeclEx):String {
+    public function formatPackage(clazz:ClassDecl):String {
         if (clazz.pkg != null && clazz.pkg.length > 0) {
             return "package " + clazz.pkg.join(".") + ";";
         }
         return "";
     }
 
-    public function formatImports(clazz:PolymodClassDeclEx):String {
+    public function formatImports(clazz:ClassDecl):String {
         var importLines:Array<String> = [];
         var usingLines:Array<String> = [];
 
@@ -107,7 +93,7 @@ class ASTPrinter {
         return importLines.length > 0 ? importLines.join("\n") : usingLines.join("\n");
     }
 
-    public function formatClass(clazz:PolymodClassDeclEx, varDecls:StringMap<FieldDecl>, funcDecls:StringMap<FunctionDecl>, funcMetas:StringMap<Metadata>):String {
+    public function formatClass(clazz:ClassDecl, varDecls:StringMap<FieldDecl>, funcDecls:StringMap<FunctionDecl>, funcMetas:StringMap<Metadata>):String {
         var result = "";
 
         if (clazz.meta != null && clazz.meta.length > 0) result += formatMeta(clazz.meta) + "\n";
@@ -173,7 +159,7 @@ class ASTPrinter {
                     }
 
                     varString += ";";
-                default: varString += "// Unknown field: " + varDecl.name + " (" + varDecl.kind + ")";
+                default: varString += '// Unknown field: ${varDecl.name} (${varDecl.kind})';
             }
             vars.push(varString);
         }

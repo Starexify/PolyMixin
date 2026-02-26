@@ -7,7 +7,7 @@
       "role": "Developer"
     }
   ],
-  "api_version": "0.8.0",
-  "mod_version": "0.0.2",
+  "api_version": "0.8.3",
+  "mod_version": "0.0.3",
   "license": "MIT"
 }

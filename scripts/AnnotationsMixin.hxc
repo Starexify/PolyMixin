@@ -33,14 +33,14 @@ class AnnotationsMixin extends ScriptedModule {
 
 
     @:ModifyReceiver(method = "testFive", call = testRecCall, target = "Annotations.setX", ordinal = 1)
-    function testRec(receiver:Test, newX:Int) {
+    function testRec(receiver:Annotations, newX:Int) {
         if (newX == 2) {
             return AnnotationsMixin;
         }
         return receiver;
     }
 
-    function testRecCall(receiver:Test, newX:Int) {
+    function testRecCall(receiver:Annotations, newX:Int) {
         testRec(receiver, newX);
     }
 
@@ -49,8 +49,8 @@ class AnnotationsMixin extends ScriptedModule {
     }
 
 
-/*    @:InjectFunction
-    function newTest() {
-        trace("New Test injected into class");
-    }*/
+//    @:InjectFunction
+//    function newTest() {
+//        trace("New Test injected into class");
+//    }
 }

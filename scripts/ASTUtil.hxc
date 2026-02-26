@@ -14,7 +14,7 @@ import funkin.modding.module.ModuleHandler;
 import funkin.play.notes.notekind.NoteKindManager;
 import funkin.play.song.Song;
 import funkin.util.ReflectUtil;
-import hscript.Expr;
+import polymod.hscript._internal.Expr;
 import polymod.hscript._internal.PolymodScriptClass;
 
 class ASTUtil {
@@ -93,7 +93,4 @@ class ASTUtil {
     }*/
 }
 
-typedef FieldCache = {
-    var fields:Array<FieldDecl>;
-    var cached:Map<String, FieldDecl>;
-}
+typedef FieldCache = {fields:Array<FieldDecl>, cached:Map<String, FieldDecl>}

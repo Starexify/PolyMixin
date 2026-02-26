@@ -1,7 +1,6 @@
 import funkin.play.song.Song;
 import funkin.util.ReflectUtil;
-import hscript.Expr;
-import polymod.hscript._internal.PolymodClassDeclEx;
+import polymod.hscript._internal.Expr;
 
 class MixinAnnotationProcessor {
 
@@ -13,10 +12,10 @@ class MixinAnnotationProcessor {
      * @return true if the class definition was found and processing occurred, false otherwise.
      */
     public static function applyMixins(source:Dynamic, target:Dynamic):Bool {
-        var _c:PolymodClassDeclEx = ReflectUtil.getField(source, "_c");
+        var _c:ClassDecl = ReflectUtil.getField(source, "_c");
 
         if (_c == null) {
-            PolymodLogger.error("No class definition found.");
+            PolymodLogger.error('No class definition found.');
             return false;
         }
 
@@ -110,45 +109,45 @@ class MixinAnnotationProcessor {
             case ":Overwrite":
                 var methodName:String = retrieveParams(meta, ["method"]).method;
                 if (methodName != null) {
-                    PolymodLogger.log("Overwriting method " + methodName + "() with " + funcName + "() from class " + className);
+                    PolymodLogger.log('Overwriting method ${methodName}() with ${funcName}() from class $className');
                     PolyMixin.overwrite(target, methodName, source, funcName);
                 } else PolymodLogger.warn("method name is null for " + funcName);
             case ":Inject":
                 var params:InjectionParams = retrieveParams(meta, ["method", "at", "target", "ordinal", "shift"]);
                 if (params.method != null) {
-                    PolymodLogger.log("Injecting into method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    PolymodLogger.log('Injecting into method ${params.method}() with params: $params and function: ${funcName}() from class $className');
                     switch (params.at) {
                         case "INVOKE":
                             if (params.target != null) PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at, params.target, params.ordinal, params.shift);
-                            else PolymodLogger.warn("target is null for " + funcName);
+                            else PolymodLogger.warn('target is null for $funcName');
                         case "RETURN":
                             PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at, null, params.ordinal);
                         default:
                             PolyMixin.injectByNameStr(target, params.method, source, funcName, params.at);
                     }
-                } else PolymodLogger.warn("method name is null for " + funcName);
+                } else PolymodLogger.warn('method name is null for $funcName');
             case ":ModifyReturn":
                 var params:ModifyReturnParams = retrieveParams(meta, ["method", "call"]);
                 if (params.method != null) {
-                    PolymodLogger.log("Modifying return from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    PolymodLogger.log('Modifying return from method ${params.method}() with params: $params and function: ${funcName}() from class $className');
                     PolyMixin.modifyByName(target, params.method, source, funcName, params.call, At.RETURN);
                 } else PolymodLogger.warn("method name is null for " + funcName);
             case ":ModifyExpression":
                 var params:ModifyExprParams = retrieveParams(meta, ["method", "target", "ordinal", "call"]);
                 if (params.method != null) {
-                    PolymodLogger.log("Modifying expression from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    PolymodLogger.log('Modifying expression from method ${params.method}() with params: $params and function: ${funcName}() from class $className');
                     if (params.target != null) PolyMixin.modifyByName(target, params.method, source, funcName, params.call, At.INVOKE, params.target, params.ordinal);
                     else PolymodLogger.warn("target is null for " + funcName);
                 } else PolymodLogger.warn("method name is null for " + funcName);
             case ":ModifyReceiver":
                 var params:ModifyExprParams = retrieveParams(meta, ["method", "target", "ordinal", "call"]);
                 if (params.method != null) {
-                    PolymodLogger.log("Modifying receiver from method " + params.method + "() with params: " + params + " and function: " + funcName + "() from class " + className);
+                    PolymodLogger.log('Modifying receiver from method ${params.method}() with params: $params and function: ${funcName}() from class $className');
                     if (params.target != null) PolyMixin.modifyRecByName(target, params.method, source, funcName, params.call, null, params.target, params.ordinal);
-                    else PolymodLogger.warn("target is null for " + funcName);
-                } else PolymodLogger.warn("method name is null for " + funcName);
+                    else PolymodLogger.warn('target is null for $funcName');
+                } else PolymodLogger.warn('method name is null for $funcName');
             case ":InjectFunction":
-                PolymodLogger.log("Injecting function " + funcName + "() from class " + className);
+                PolymodLogger.log('Injecting function ${funcName}() from class $className');
                 PolyMixin.injectFunction(target, source, funcName);
         }
     }
@@ -174,7 +173,7 @@ class MixinAnnotationProcessor {
                                     case Expr.EIdent(paramName2):
                                         value = paramName2;
                                     case _:
-                                        PolymodLogger.warn("Unhandled RHS for " + paramName + ": " + e2.e);
+                                        PolymodLogger.warn('Unhandled RHS for ${paramName}: e2.e');
                                 }
 
                                 ReflectUtil.setField(result, paramName, value);

@@ -1,7 +1,8 @@
 import funkin.util.ReflectUtil;
-import hscript.Expr;
-import Lambda;
+import polymod.hscript._internal.Expr;
 import Std;
+
+using Lambda;
 
 /**
  * Utility module providing methods and functions for injection, overwriting or modifying
@@ -18,14 +19,15 @@ class PolyMixin {
   }
 
   // MARK: - Public API Methods
-  public static function modifyRecByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, ?at:At, ?target:String, ?ordinal:Int):Bool {
+  public static function modifyRecByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, ?at:At, ?target:String, ?ordinal:Int = 0):Bool {
     at = at ?? At.INVOKE;
+
     var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
     if (validation == null) return false;
 
     var callFunc = validation.sourceFuncs.get(callFuncName);
     if (callFunc == null) {
-      PolymodLogger.error("Call function " + callFuncName + " not found");
+      PolymodLogger.error('Call function $callFuncName not found');
       return false;
     }
 
@@ -34,7 +36,7 @@ class PolyMixin {
         injectFunction(targetInstance, sourceInstance, sourceFuncName);
         modifyRec(validation.targetFunc, callFunc, sourceFuncName, target, ordinal);
       default:
-        PolymodLogger.warn("Only At.INVOKE is supported for the ModifyReceiver function!");
+        PolymodLogger.warn('Only At.INVOKE is supported for the ModifyReceiver function!');
         return false;
     }
 
@@ -42,14 +44,14 @@ class PolyMixin {
     return true;
   }
 
-  public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, at:At, ?target:String, ?ordinal:Int):Bool {
+  public static function modifyByName(targetInstance:Dynamic, targetFuncName:String, sourceInstance:Dynamic, sourceFuncName:String, callFuncName:String, at:At, ?target:String, ?ordinal:Int = 0):Bool {
     at = at ?? At.RETURN;
     var validation = validateInstances(targetInstance, sourceInstance, targetFuncName, sourceFuncName);
     if (validation == null) return false;
 
     var callFunc = validation.sourceFuncs.get(callFuncName);
     if (callFunc == null) {
-      PolymodLogger.error("Call function " + callFuncName + " not found");
+      PolymodLogger.error('Call function $callFuncName not found');
       return false;
     }
 
@@ -61,7 +63,7 @@ class PolyMixin {
         injectFunction(targetInstance, sourceInstance, sourceFuncName);
         modifyExprValue(validation.targetFunc, callFunc, sourceFuncName, target, ordinal);
       default:
-        PolymodLogger.warn("Only At.RETURN/At.INVOKE are supported for this function !");
+        PolymodLogger.warn('Only At.RETURN/At.INVOKE are supported for this function !');
         return false;
     }
 
@@ -101,21 +103,21 @@ class PolyMixin {
     var sourceFuncs = ASTUtil.getFuncCache(sourceInstance);
 
     if (targetFuncs == null || sourceFuncs == null || targetFields == null) {
-      PolymodLogger.error("Failed to get required caches/fields.");
+      PolymodLogger.error('Failed to get required caches/fields.');
       return false;
     }
 
     var sourceFunc = sourceFuncs.get(sourceFuncName);
     if (sourceFunc == null) {
-      PolymodLogger.error("Source function " + sourceFuncName + " not found");
+      PolymodLogger.error('Source function $sourceFuncName not found');
       return false;
     }
 
     var sourceFields:Array<FieldDecl> = ReflectUtil.getField(sourceInstance, "_c").fields;
-    var sourceField:FieldDecl = Lambda.find(sourceFields, (f) -> f.name == sourceFuncName);
+    var sourceField:FieldDecl = sourceFields.find((f) -> f.name == sourceFuncName);
 
     if (sourceField == null) {
-      PolymodLogger.error("Source field " + sourceFuncName + " not found");
+      PolymodLogger.error('Source field $sourceFuncName not found.');
       return false;
     }
 
@@ -127,17 +129,16 @@ class PolyMixin {
   }
 
   public static function injectImport(targetInstance:Dynamic, pkg:String):Bool {
-    PolymodLogger.info("Injecting imports is not yet implemented !");
+    PolymodLogger.info('Injecting imports is not yet implemented !');
     return true;
   }
 
   // MARK: - Core Injection Logic
   public static function modifyRec(targetFunc:FunctionDecl, callFunc:FunctionDecl, sourceFuncName:String, ?target:String, ?ordinal:Int):FunctionDecl {
     if (target == null || target == "") {
-      PolymodLogger.error("Target injection parameter is null or empty.");
+      PolymodLogger.error('Target injection parameter is null or empty.');
       return targetFunc;
     }
-    ordinal = ordinal ?? 0;
 
     var targets = target.split(".");
 
@@ -199,10 +200,10 @@ class PolyMixin {
                         var result = recursiveSearch(fExpr, newCall, targets, ordinal, curCount);
                         return { expr: expr.e, modified: result.modified, curCount: result.curCount };*/
               }
-              default: PolymodLogger.warn("No Expr.EField found for Reciever, please provide an actual receiver !");
+              default: PolymodLogger.warn('No Expr.EField found for Reciever, please provide an actual receiver !');
             }
         }
-      default: PolymodLogger.warn("No Expr.ECall, please provide an actual receiver !");
+      default: PolymodLogger.warn('No Expr.ECall, please provide an actual receiver !');
     }
 
     return { expr: tgCall, modified: false, curCount: curCount };
@@ -213,8 +214,6 @@ class PolyMixin {
             trace("No mixins applied to this function. `target` injection param is null or empty, give an actual target!");
             return targetFunc;
         }*/
-    ordinal = ordinal ?? 0;
-
     var newCall = extractCallExpression(callFunc, sourceFuncName);
     if (newCall == null) return targetFunc;
 
@@ -249,7 +248,7 @@ class PolyMixin {
               }
 
               totalIfCount++;
-            default: PolymodLogger.warn("No if statement found in the function, no mixins were applied!");
+            default: PolymodLogger.warn('No if statement found in the function, no mixins were applied!');
           }
         }
       default:
@@ -285,10 +284,10 @@ class PolyMixin {
               var wrappedReturn = wrapReturn(oldReturn, newCall, sourceFuncName);
               targetExprs[i] = wrappedReturn;
               returnFound = true;
-            default: PolymodLogger.warn("No return statement found in the function, no mixins were applied!");
+            default: PolymodLogger.warn('No return statement found in the function, no mixins were applied!');
           }
         }
-        if (!returnFound) PolymodLogger.warn("No return statement found in the function, no mixins were applied!");
+        if (!returnFound) PolymodLogger.warn('No return statement found in the function, no mixins were applied!');
       default:
     }
 
@@ -301,7 +300,7 @@ class PolyMixin {
         switch (newCall) {
           case Expr.ECall(callExpr, params): params[0].e = expr.e;
           default:
-            PolymodLogger.warn("Invalid call expression in source function " + sourceFuncName);
+            PolymodLogger.warn('Invalid call expression in source function ' + sourceFuncName);
             return oldReturn;
         }
         expr.e = newCall;
@@ -309,7 +308,7 @@ class PolyMixin {
     return oldReturn;
   }
 
-  public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At, ?ordinal:Int):FunctionDecl {
+  public static function inject(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, at:At, ?ordinal:Int = -1):FunctionDecl {
     var sourceExprs = extractSourceExpressions(sourceFunc);
     if (sourceExprs == null) return targetFunc;
 
@@ -327,7 +326,6 @@ class PolyMixin {
   }
 
   public static function injectAtReturn(targetExprs:Array<Expr>, sourceExprs:Array<Expr>, ordinal:Int) {
-    ordinal = ordinal ?? -1;
     var i = 0;
     var returnCount = 0;
 
@@ -402,13 +400,12 @@ class PolyMixin {
     return currentReturnCount;
   }
 
-  public static function injectAtTarget(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, target:String, ordinal:Int, shift:Shift):FunctionDecl {
+  public static function injectAtTarget(targetFunc:FunctionDecl, sourceFunc:FunctionDecl, target:String, ordinal:Int = 0, shift:Shift):FunctionDecl {
     if (target == "" || target == null) {
-      PolymodLogger.error("Target injection parameter is null or empty");
+      PolymodLogger.error('Target injection parameter is null or empty');
       return targetFunc;
     }
     shift = shift ?? Shift.BEFORE;
-    ordinal = ordinal ?? 0;
 
     var sourceExprs = extractSourceExpressions(sourceFunc);
     if (sourceExprs == null) return targetFunc;
@@ -464,7 +461,7 @@ class PolyMixin {
       case Expr.EBlock(exprs):
         if (exprs.length > 0) exprs[0].e else null;
       default:
-        PolymodLogger.warn("Source function " + sourceFuncName + " must provide a valid function recall");
+        PolymodLogger.warn('Source function $sourceFuncName must provide a valid function recall');
         null;
     }
   }
@@ -473,9 +470,9 @@ class PolyMixin {
     var targetFuncs = ASTUtil.getFuncCache(targetInstance);
     var sourceFuncs = ASTUtil.getFuncCache(sourceInstance);
 
-    if (targetFuncs == null) PolymodLogger.error("Failed to get function from target instance " + targetInstance);
+    if (targetFuncs == null) PolymodLogger.error('Failed to get function from target instance $targetInstance');
     if (targetFuncs == null || sourceFuncs == null) {
-      PolymodLogger.error("Failed to get function caches.");
+      PolymodLogger.error('Failed to get function caches.');
       return null;
     }
 
@@ -483,12 +480,12 @@ class PolyMixin {
     var sourceFunc = sourceFuncs.get(sourceFuncName);
 
     if (targetFunc == null) {
-      PolymodLogger.error("Target function " + targetFuncName + " not found");
+      PolymodLogger.error('Target function $targetFuncName not found');
       return null;
     }
 
     if (sourceFunc == null) {
-      PolymodLogger.error("Source function " + sourceFuncName + " not found");
+      PolymodLogger.error('Source function $sourceFuncName not found');
       return null;
     }
 
